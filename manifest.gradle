@@ -11,7 +11,7 @@ ext {
     library_project_group = 'net.gotev'
     library_version = '3.5.1'
     version_code = 31
-    min_sdk = 18
+    min_sdk = 16
     target_sdk = 28
     demo_app_id = 'net.gotev.uploadservicedemo'
 
