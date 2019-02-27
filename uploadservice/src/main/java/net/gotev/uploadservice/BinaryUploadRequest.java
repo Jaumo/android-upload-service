@@ -87,11 +87,11 @@ public class BinaryUploadRequest extends HttpUploadRequest<BinaryUploadRequest> 
     }
 
     @Override
-    public String startUpload() {
+    public String startUpload(ServiceParameters serviceParameters) {
         if (params.files.isEmpty())
             throw new IllegalArgumentException("Set the file to be used in the request body first!");
 
-        return super.startUpload();
+        return super.startUpload(serviceParameters);
     }
 
     private void logDoesNotSupportParameters() {
