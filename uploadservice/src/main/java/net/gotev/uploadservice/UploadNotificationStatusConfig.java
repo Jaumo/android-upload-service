@@ -3,7 +3,6 @@ package net.gotev.uploadservice;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v4.app.NotificationCompat;
@@ -41,7 +40,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
     /**
      * Large notification icon.
      */
-    public Bitmap largeIcon = null;
+    public LargeIcon largeIcon = null;
 
     /**
      * Icon color tint.
@@ -106,7 +105,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
         this.message = in.readString();
         this.autoClear = in.readByte() != 0;
         this.clearOnAction = in.readByte() != 0;
-        this.largeIcon = in.readParcelable(Bitmap.class.getClassLoader());
+        this.largeIcon = in.readParcelable(LargeIcon.class.getClassLoader());
         this.iconResourceID = in.readInt();
         this.iconColorResourceID = in.readInt();
         this.clickIntent = in.readParcelable(PendingIntent.class.getClassLoader());
