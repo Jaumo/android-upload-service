@@ -18,8 +18,8 @@ import java.util.LinkedHashMap;
  * @author gotev (Aleksandar Gotev)
  */
 public class UploadFile implements Parcelable {
-
     protected final String path;
+    private final String groupId;
     private LinkedHashMap<String, String> properties = new LinkedHashMap<>();
     protected final SchemeHandler handler;
 
@@ -31,7 +31,10 @@ public class UploadFile implements Parcelable {
      * @throws IllegalArgumentException if you passed invalid argument values
      */
     public UploadFile(String path) throws FileNotFoundException {
+        this(path, "");
+    }
 
+    public UploadFile(String path, String groupId) throws FileNotFoundException {
         if (path == null || "".equals(path)) {
             throw new IllegalArgumentException("Please specify a file path!");
         }
@@ -40,6 +43,7 @@ public class UploadFile implements Parcelable {
             throw new UnsupportedOperationException("Unsupported scheme: " + path);
 
         this.path = path;
+        this.groupId = groupId;
 
         try {
             this.handler = SchemeHandlerFactory.getInstance().get(path);
@@ -95,6 +99,10 @@ public class UploadFile implements Parcelable {
         return this.path;
     }
 
+    public final String getGroupId() {
+        return this.groupId;
+    }
+
     // This is used to regenerate the object.
     // All Parcelables must have a CREATOR that implements these two methods
     public static final Parcelable.Creator<UploadFile> CREATOR =
@@ -118,12 +126,14 @@ public class UploadFile implements Parcelable {
     @Override
     public void writeToParcel(Parcel parcel, int arg1) {
         parcel.writeString(path);
+        parcel.writeString(groupId);
         parcel.writeSerializable(properties);
     }
 
     @SuppressWarnings("unchecked")
     private UploadFile(Parcel in) {
         this.path = in.readString();
+        this.groupId = in.readString();
         this.properties = (LinkedHashMap<String, String>) in.readSerializable();
 
         try {
