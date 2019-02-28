@@ -45,7 +45,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
     /**
      * Icon color tint.
      */
-    public int iconColorResourceID = NotificationCompat.COLOR_DEFAULT;
+    public int iconColorInt = NotificationCompat.COLOR_DEFAULT;
 
     /**
      * Intent to be performed when the user taps on the notification.
@@ -92,7 +92,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
         dest.writeByte(this.clearOnAction ? (byte) 1 : (byte) 0);
         dest.writeParcelable(this.largeIcon, flags);
         dest.writeInt(this.iconResourceID);
-        dest.writeInt(this.iconColorResourceID);
+        dest.writeInt(this.iconColorInt);
         dest.writeParcelable(this.clickIntent, flags);
         dest.writeTypedList(this.actions);
     }
@@ -107,7 +107,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
         this.clearOnAction = in.readByte() != 0;
         this.largeIcon = in.readParcelable(LargeIcon.class.getClassLoader());
         this.iconResourceID = in.readInt();
-        this.iconColorResourceID = in.readInt();
+        this.iconColorInt = in.readInt();
         this.clickIntent = in.readParcelable(PendingIntent.class.getClassLoader());
         this.actions = in.createTypedArrayList(UploadNotificationAction.CREATOR);
     }

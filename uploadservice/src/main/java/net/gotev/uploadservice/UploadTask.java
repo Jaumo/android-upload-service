@@ -486,7 +486,7 @@ public abstract class UploadTask implements Runnable {
                 .setStyle(new NotificationCompat.BigPictureStyle()
                         .bigPicture(largeIconBitmap)
                         .bigLargeIcon(null))
-                .setColor(statusConfig.iconColorResourceID)
+                .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
                 .setProgress(100, 0, true)
                 .setOngoing(true);
@@ -525,7 +525,7 @@ public abstract class UploadTask implements Runnable {
                         .bigPicture(largeIconBitmap)
                         .bigLargeIcon(null))
                 .setLargeIcon(largeIconBitmap)
-                .setColor(statusConfig.iconColorResourceID)
+                .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
                 .setProgress((int) uploadInfo.getTotalBytes(), (int) uploadInfo.getUploadedBytes(), false)
                 .setOngoing(true);
@@ -567,7 +567,7 @@ public abstract class UploadTask implements Runnable {
                     .setAutoCancel(statusConfig.clearOnAction)
                     .setSmallIcon(statusConfig.iconResourceID)
                     .setLargeIcon(largeIconBitmap)
-                    .setColor(statusConfig.iconColorResourceID)
+                    .setColor(statusConfig.iconColorInt)
                     .setGroup(UploadService.NAMESPACE)
                     .setProgress(0, 0, false)
                     .setOngoing(false);

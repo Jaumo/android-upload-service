@@ -94,10 +94,10 @@ public final class UploadNotificationConfig implements Parcelable {
      * @return {@link UploadNotificationConfig}
      */
     public final UploadNotificationConfig setIconColorForAllStatuses(int iconColorResourceID) {
-        progress.iconColorResourceID = iconColorResourceID;
-        completed.iconColorResourceID = iconColorResourceID;
-        error.iconColorResourceID = iconColorResourceID;
-        cancelled.iconColorResourceID = iconColorResourceID;
+        progress.iconColorInt = iconColorResourceID;
+        completed.iconColorInt = iconColorResourceID;
+        error.iconColorInt = iconColorResourceID;
+        cancelled.iconColorInt = iconColorResourceID;
         return this;
     }
 
