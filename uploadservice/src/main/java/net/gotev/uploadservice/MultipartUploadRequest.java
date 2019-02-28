@@ -42,7 +42,7 @@ public class MultipartUploadRequest extends HttpUploadRequest<MultipartUploadReq
 
     /**
      * Creates a new multipart upload request and automatically generates an upload id, that will
-     * be returned when you call {@link UploadRequest#startUpload()}.
+     * be returned when you call {@link UploadRequest#startUpload(ServiceParameters)}.
      *
      * @param context application context
      * @param serverUrl URL of the server side script that will handle the multipart form upload.
@@ -69,90 +69,44 @@ public class MultipartUploadRequest extends HttpUploadRequest<MultipartUploadReq
     /**
      * Adds a file to this upload request.
      *
-     * @param filePath path to the file that you want to upload
-     * @param parameterName Name of the form parameter that will contain file's data
-     * @param fileName File name seen by the server side script. If null, the original file name
-     *                 will be used
-     * @param contentType Content type of the file. You can use constants defined in
-     *                    {@link ContentType} class. Set this to null or empty string to try to
-     *                    automatically detect the mime type from the file. If the mime type can't
-     *                    be detected, {@code application/octet-stream} will be used by default
+     * @param uploadFile file to upload
      * @throws FileNotFoundException if the file does not exist at the specified path
      * @throws IllegalArgumentException if one or more parameters are not valid
      * @return {@link MultipartUploadRequest}
      */
-    public MultipartUploadRequest addFileToUpload(String filePath,
-                                                  String parameterName,
-                                                  String fileName, String contentType)
+    public MultipartUploadRequest addFileToUpload(UploadFile uploadFile)
             throws FileNotFoundException, IllegalArgumentException {
+        String filePath = uploadFile.getPath();
 
-        UploadFile file = new UploadFile(filePath);
-        filePath = file.getPath();
-
-        if (parameterName == null || "".equals(parameterName)) {
+        if (uploadFile.getParameterName() == null || "".equals(uploadFile.getParameterName())) {
             throw new IllegalArgumentException("Please specify parameterName value for file: "
                                                + filePath);
         }
 
-        file.setProperty(MultipartUploadTask.PROPERTY_PARAM_NAME, parameterName);
+        uploadFile.setProperty(MultipartUploadTask.PROPERTY_PARAM_NAME, uploadFile.getParameterName());
 
-        if (contentType == null || contentType.isEmpty()) {
-            contentType = file.getContentType(context);
+        if (uploadFile.getContentType() == null || uploadFile.getContentType().isEmpty()) {
+            uploadFile.setContentType(uploadFile.getResolvedContentType(context));
             Logger.debug(LOG_TAG, "Auto-detected MIME type for " + filePath
-                    + " is: " + contentType);
+                    + " is: " + uploadFile.getContentType());
         } else {
             Logger.debug(LOG_TAG, "Content Type set for " + filePath
-                    + " is: " + contentType);
+                    + " is: " + uploadFile.getContentType());
         }
 
-        file.setProperty(MultipartUploadTask.PROPERTY_CONTENT_TYPE, contentType);
+        uploadFile.setProperty(MultipartUploadTask.PROPERTY_CONTENT_TYPE, uploadFile.getContentType());
 
-        if (fileName == null || "".equals(fileName)) {
-            fileName = file.getName(context);
-            Logger.debug(LOG_TAG, "Using original file name: " + fileName);
+        if (uploadFile.getFileName() == null || "".equals(uploadFile.getFileName())) {
+            uploadFile.setFileName(uploadFile.getName(context));
+            Logger.debug(LOG_TAG, "Using original file name: " + uploadFile.getFileName());
         } else {
-            Logger.debug(LOG_TAG, "Using custom file name: " + fileName);
+            Logger.debug(LOG_TAG, "Using custom file name: " + uploadFile.getFileName());
         }
 
-        file.setProperty(MultipartUploadTask.PROPERTY_REMOTE_FILE_NAME, fileName);
+        uploadFile.setProperty(MultipartUploadTask.PROPERTY_REMOTE_FILE_NAME, uploadFile.getFileName());
 
-        params.files.add(file);
+        params.files.add(uploadFile);
         return this;
-    }
-
-    /**
-     * Adds a file to this upload request, without setting the content type, which will be
-     * automatically detected from the file extension. If you want to
-     * manually set the content type, use {@link #addFileToUpload(String, String, String, String)}.
-     * @param path Absolute path to the file that you want to upload
-     * @param parameterName Name of the form parameter that will contain file's data
-     * @param fileName File name seen by the server side script. If null, the original file name
-     *                 will be used
-     * @return {@link MultipartUploadRequest}
-     * @throws FileNotFoundException if the file does not exist at the specified path
-     * @throws IllegalArgumentException if one or more parameters are not valid
-     */
-    public MultipartUploadRequest addFileToUpload(final String path, final String parameterName,
-                                                  final String fileName)
-            throws FileNotFoundException, IllegalArgumentException {
-        return addFileToUpload(path, parameterName, fileName, null);
-    }
-
-    /**
-     * Adds a file to this upload request, without setting file name and content type.
-     * The original file name will be used instead. If you want to manually set the file name seen
-     * by the server side script and the content type, use
-     * {@link #addFileToUpload(String, String, String, String)}
-     *
-     * @param path Absolute path to the file that you want to upload
-     * @param parameterName Name of the form parameter that will contain file's data
-     * @throws FileNotFoundException if the file does not exist at the specified path
-     * @throws IllegalArgumentException if one or more parameters are not valid
-     * @return {@link MultipartUploadRequest}
-     */
-    public MultipartUploadRequest addFileToUpload(final String path, final String parameterName)
-            throws FileNotFoundException, IllegalArgumentException {
-        return addFileToUpload(path, parameterName, null, null);
     }
 
     /**

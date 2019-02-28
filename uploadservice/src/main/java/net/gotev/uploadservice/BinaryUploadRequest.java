@@ -37,7 +37,7 @@ public class BinaryUploadRequest extends HttpUploadRequest<BinaryUploadRequest> 
 
     /**
      * Creates a new binaryupload request and automatically generates an upload id, that will
-     * be returned when you call {@link HttpUploadRequest#startUpload()}.
+     * be returned when you call {@link HttpUploadRequest#startUpload(ServiceParameters)}.
      *
      * @param context application context
      * @param serverUrl URL of the server side script that will handle the multipart form upload.
@@ -58,13 +58,13 @@ public class BinaryUploadRequest extends HttpUploadRequest<BinaryUploadRequest> 
     /**
      * Sets the file used as raw body of the upload request.
      *
-     * @param path path to the file that you want to upload
+     * @param upload file that you want to upload
      * @throws FileNotFoundException if the file to upload does not exist
      * @return {@link BinaryUploadRequest}
      */
-    public BinaryUploadRequest setFileToUpload(String path) throws FileNotFoundException {
+    public BinaryUploadRequest setFileToUpload(UploadFile upload) throws FileNotFoundException {
         params.files.clear();
-        params.files.add(new UploadFile(path));
+        params.files.add(upload);
         return this;
     }
 
