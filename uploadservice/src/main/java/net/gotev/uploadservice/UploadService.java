@@ -8,7 +8,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.annotation.Nullable;
-import android.support.v4.util.ArrayMap;
 
 import net.gotev.uploadservice.http.HttpStack;
 import net.gotev.uploadservice.http.impl.HurlStack;
@@ -138,7 +137,6 @@ public final class UploadService extends Service {
     private static final Map<String, UploadTask> uploadTasksMap = new ConcurrentHashMap<>();
     private static final Map<String, WeakReference<UploadStatusDelegate>> uploadDelegates = new ConcurrentHashMap<>();
     private final BlockingQueue<Runnable> uploadTasksQueue = new LinkedBlockingQueue<>();
-    private final ArrayMap<String, UploadTaskGroup> uploadGroupMap = new ArrayMap<>(1);
     private static volatile String foregroundUploadId = null;
     private ThreadPoolExecutor uploadThreadPool;
     private Timer idleTimer = null;
