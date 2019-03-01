@@ -104,14 +104,14 @@ public final class UploadNotificationConfig implements Parcelable {
     /**
      * Sets the same large notification icon for all the notification statuses.
      *
-     * @param largeIcon Bitmap of the icon to use
+     * @param dimensions Bitmap of the icon to use
      * @return {@link UploadNotificationConfig}
      */
-    public final UploadNotificationConfig setLargeIconForAllStatuses(LargeIcon largeIcon) {
-        progress.largeIcon = largeIcon;
-        completed.largeIcon = largeIcon;
-        error.largeIcon = largeIcon;
-        cancelled.largeIcon = largeIcon;
+    public final UploadNotificationConfig setLargeIconDimensionsForAllStatuses(Dimensions dimensions) {
+        progress.largeNotificationDimensions = dimensions;
+        completed.largeNotificationDimensions = dimensions;
+        error.largeNotificationDimensions = dimensions;
+        cancelled.largeNotificationDimensions = dimensions;
         return this;
     }
 

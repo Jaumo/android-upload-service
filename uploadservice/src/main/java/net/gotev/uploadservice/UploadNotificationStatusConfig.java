@@ -38,9 +38,9 @@ public class UploadNotificationStatusConfig implements Parcelable {
     public int iconResourceID = android.R.drawable.ic_menu_upload;
 
     /**
-     * Large notification icon.
+     * Dimensions of the large notification icon.
      */
-    public LargeIcon largeIcon = null;
+    public Dimensions largeNotificationDimensions = null;
 
     /**
      * Icon color tint.
@@ -90,7 +90,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
         dest.writeString(this.message);
         dest.writeByte(this.autoClear ? (byte) 1 : (byte) 0);
         dest.writeByte(this.clearOnAction ? (byte) 1 : (byte) 0);
-        dest.writeParcelable(this.largeIcon, flags);
+        dest.writeParcelable(this.largeNotificationDimensions, flags);
         dest.writeInt(this.iconResourceID);
         dest.writeInt(this.iconColorInt);
         dest.writeParcelable(this.clickIntent, flags);
@@ -105,7 +105,7 @@ public class UploadNotificationStatusConfig implements Parcelable {
         this.message = in.readString();
         this.autoClear = in.readByte() != 0;
         this.clearOnAction = in.readByte() != 0;
-        this.largeIcon = in.readParcelable(LargeIcon.class.getClassLoader());
+        this.largeNotificationDimensions = in.readParcelable(Dimensions.class.getClassLoader());
         this.iconResourceID = in.readInt();
         this.iconColorInt = in.readInt();
         this.clickIntent = in.readParcelable(PendingIntent.class.getClassLoader());
