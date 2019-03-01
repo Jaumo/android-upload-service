@@ -2,6 +2,7 @@ package net.gotev.uploadservice;
 
 /**
  * Contains all the placeholders that is possible to use in the notification text strings.
+ *
  * @author Aleksandar Gotev
  */
 public class Placeholders {
@@ -31,13 +32,19 @@ public class Placeholders {
     public static final String UPLOADED_FILES = "[[UPLOADED_FILES]]";
 
     /**
+     * The current index of the file being uploaded
+     */
+    public static final String CURRENT_FILE_INDEX = "[[CURRENT_FILE_INDEX]]";
+
+    /**
      * Placeholder to display the total number of files to upload.
      */
     public static final String TOTAL_FILES = "[[TOTAL_FILES]]";
 
     /**
      * Replace placeholders in a string.
-     * @param string string in which to replace placeholders
+     *
+     * @param string     string in which to replace placeholders
      * @param uploadInfo upload information data
      * @return string with replaced placeholders
      */
@@ -46,11 +53,17 @@ public class Placeholders {
             return "";
 
         String tmp;
+
+        int successfullyUploadedFiles = uploadInfo.getSuccessfullyUploadedFiles().size();
+        int totalFiles = uploadInfo.getTotalFiles();
+        int currentFileIndex = successfullyUploadedFiles + 1 < totalFiles ? successfullyUploadedFiles + 1 : totalFiles;
+
         tmp = string.replace(ELAPSED_TIME, uploadInfo.getElapsedTimeString());
         tmp = tmp.replace(PROGRESS, uploadInfo.getProgressPercent() + "%");
         tmp = tmp.replace(UPLOAD_RATE, uploadInfo.getUploadRateString());
-        tmp = tmp.replace(UPLOADED_FILES, Integer.toString(uploadInfo.getSuccessfullyUploadedFiles().size()));
-        tmp = tmp.replace(TOTAL_FILES, Integer.toString(uploadInfo.getTotalFiles()));
+        tmp = tmp.replace(UPLOADED_FILES, Integer.toString(successfullyUploadedFiles));
+        tmp = tmp.replace(CURRENT_FILE_INDEX, Integer.toString(currentFileIndex));
+        tmp = tmp.replace(TOTAL_FILES, Integer.toString(totalFiles));
 
         return tmp;
     }

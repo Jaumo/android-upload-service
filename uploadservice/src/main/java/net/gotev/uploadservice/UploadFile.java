@@ -23,20 +23,13 @@ public class UploadFile implements Parcelable {
         private String parameterName;
         private String fileName;
         private String contentType;
-        private String groupId;
 
-        public static Builder newInstance() {
-            return new Builder();
+        public static Builder newInstance(String path) {
+            return new Builder(path);
         }
 
-        private Builder() {}
-
-        /**
-         * Path to the file that you want to upload.
-         */
-        public Builder setPath(String path) {
+        private Builder(String path) {
             this.path = path;
-            return this;
         }
 
         /**
@@ -67,14 +60,6 @@ public class UploadFile implements Parcelable {
             return this;
         }
 
-        /**
-         * Path to the file that you want to upload.
-         */
-        public Builder setGroupId(String groupId) {
-            this.groupId = groupId;
-            return this;
-        }
-
         public UploadFile build() {
             return new UploadFile(this);
         }
@@ -85,7 +70,6 @@ public class UploadFile implements Parcelable {
     private final String parameterName;
     private String fileName;
     private String contentType;
-    private final String groupId;
     private LinkedHashMap<String, String> properties = new LinkedHashMap<>();
     protected final SchemeHandler handler;
 
@@ -110,7 +94,6 @@ public class UploadFile implements Parcelable {
         this.parameterName = builder.parameterName;
         this.fileName = builder.fileName;
         this.contentType = builder.contentType;
-        this.groupId = builder.groupId;
 
         try {
             this.handler = SchemeHandlerFactory.getInstance().get(path);
@@ -118,8 +101,6 @@ public class UploadFile implements Parcelable {
             throw new RuntimeException(exc);
         }
     }
-
-
 
     /**
      * Gets the file length in bytes.
@@ -176,7 +157,7 @@ public class UploadFile implements Parcelable {
         return fileName;
     }
 
-    public void setFileName(String name) {
+    public void setFileName(String fileName) {
         this.fileName = fileName;
     }
 
@@ -186,10 +167,6 @@ public class UploadFile implements Parcelable {
 
     public void setContentType(String contentType) {
         this.contentType = contentType;
-    }
-
-    public final String getGroupId() {
-        return this.groupId;
     }
 
     // This is used to regenerate the object.
@@ -218,7 +195,6 @@ public class UploadFile implements Parcelable {
         parcel.writeString(parameterName != null ? parameterName : "");
         parcel.writeString(fileName != null ? fileName : "");
         parcel.writeString(contentType != null ? contentType : "");
-        parcel.writeString(groupId != null ? groupId : "");
         parcel.writeSerializable(properties);
     }
 
@@ -228,7 +204,6 @@ public class UploadFile implements Parcelable {
         this.parameterName = in.readString();
         this.fileName = in.readString();
         this.contentType = in.readString();
-        this.groupId = in.readString();
         this.properties = (LinkedHashMap<String, String>) in.readSerializable();
 
         try {
