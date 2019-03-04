@@ -1,11 +1,9 @@
 package net.gotev.uploadservice;
 
 import android.app.PendingIntent;
-import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import androidx.annotation.NonNull;
+import android.support.annotation.NonNull;
 
 /**
  * Contains the configuration of the upload notification.
@@ -96,24 +94,24 @@ public final class UploadNotificationConfig implements Parcelable {
      * @return {@link UploadNotificationConfig}
      */
     public final UploadNotificationConfig setIconColorForAllStatuses(int iconColorResourceID) {
-        progress.iconColorResourceID = iconColorResourceID;
-        completed.iconColorResourceID = iconColorResourceID;
-        error.iconColorResourceID = iconColorResourceID;
-        cancelled.iconColorResourceID = iconColorResourceID;
+        progress.iconColorInt = iconColorResourceID;
+        completed.iconColorInt = iconColorResourceID;
+        error.iconColorInt = iconColorResourceID;
+        cancelled.iconColorInt = iconColorResourceID;
         return this;
     }
 
     /**
      * Sets the same large notification icon for all the notification statuses.
      *
-     * @param largeIcon Bitmap of the icon to use
+     * @param dimensions Bitmap of the icon to use
      * @return {@link UploadNotificationConfig}
      */
-    public final UploadNotificationConfig setLargeIconForAllStatuses(Bitmap largeIcon) {
-        progress.largeIcon = largeIcon;
-        completed.largeIcon = largeIcon;
-        error.largeIcon = largeIcon;
-        cancelled.largeIcon = largeIcon;
+    public final UploadNotificationConfig setLargeIconDimensionsForAllStatuses(Dimensions dimensions) {
+        progress.largeNotificationDimensions = dimensions;
+        completed.largeNotificationDimensions = dimensions;
+        error.largeNotificationDimensions = dimensions;
+        cancelled.largeNotificationDimensions = dimensions;
         return this;
     }
 

@@ -18,28 +18,82 @@ import java.util.LinkedHashMap;
  * @author gotev (Aleksandar Gotev)
  */
 public class UploadFile implements Parcelable {
+    public static class Builder {
+        private String path;
+        private String parameterName;
+        private String fileName;
+        private String contentType;
+
+        public static Builder newInstance(String path) {
+            return new Builder(path);
+        }
+
+        private Builder(String path) {
+            this.path = path;
+        }
+
+        /**
+         * Name of the form parameter that will contain file's data.
+         */
+        public Builder setParameterName(String parameterName) {
+            this.parameterName = parameterName;
+            return this;
+        }
+
+        /**
+         * File name seen by the server side script. If null, the original file name  will be used.
+         */
+        public Builder setFileName(String fileName) {
+            this.fileName = fileName;
+            return this;
+        }
+
+        /**
+         * Content type of the file. You can use constants defined in
+         * {@link ContentType} class. Set this to null or empty string to try to
+         * automatically detect the mime type from the file. If the mime type can't
+         * be detected, {@code application/octet-stream} will be used by default.
+         * @throws FileNotFoundException if the file does not exist at the specified path
+         */
+        public Builder setContentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public UploadFile build() {
+            return new UploadFile(this);
+        }
+    }
+
 
     protected final String path;
+    private final String parameterName;
+    private String fileName;
+    private String contentType;
     private LinkedHashMap<String, String> properties = new LinkedHashMap<>();
     protected final SchemeHandler handler;
+
 
     /**
      * Creates a new UploadFile.
      *
-     * @param path absolute path to a file or an Android content Uri string
+     * @param builder
      * @throws FileNotFoundException if the file can't be found at the specified path
      * @throws IllegalArgumentException if you passed invalid argument values
      */
-    public UploadFile(String path) throws FileNotFoundException {
 
-        if (path == null || "".equals(path)) {
+    public UploadFile(Builder builder) {
+        if (builder.path == null || "".equals(builder.path)) {
             throw new IllegalArgumentException("Please specify a file path!");
         }
 
-        if (!SchemeHandlerFactory.getInstance().isSupported(path))
-            throw new UnsupportedOperationException("Unsupported scheme: " + path);
+        if (!SchemeHandlerFactory.getInstance().isSupported(builder.path))
+            throw new UnsupportedOperationException("Unsupported scheme: " + builder.path);
 
-        this.path = path;
+        this.path = builder.path;
+        this.parameterName = builder.parameterName;
+        this.fileName = builder.fileName;
+        this.contentType = builder.contentType;
 
         try {
             this.handler = SchemeHandlerFactory.getInstance().get(path);
@@ -73,7 +127,7 @@ public class UploadFile implements Parcelable {
      * @param context service context
      * @return content type
      */
-    public final String getContentType(Context context) {
+    public final String getResolvedContentType(Context context) {
         return handler.getContentType(context);
     }
 
@@ -93,6 +147,26 @@ public class UploadFile implements Parcelable {
      */
     public final String getPath() {
         return this.path;
+    }
+
+    public String getParameterName() {
+        return parameterName;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 
     // This is used to regenerate the object.
@@ -118,12 +192,18 @@ public class UploadFile implements Parcelable {
     @Override
     public void writeToParcel(Parcel parcel, int arg1) {
         parcel.writeString(path);
+        parcel.writeString(parameterName != null ? parameterName : "");
+        parcel.writeString(fileName != null ? fileName : "");
+        parcel.writeString(contentType != null ? contentType : "");
         parcel.writeSerializable(properties);
     }
 
     @SuppressWarnings("unchecked")
     private UploadFile(Parcel in) {
         this.path = in.readString();
+        this.parameterName = in.readString();
+        this.fileName = in.readString();
+        this.contentType = in.readString();
         this.properties = (LinkedHashMap<String, String>) in.readSerializable();
 
         try {

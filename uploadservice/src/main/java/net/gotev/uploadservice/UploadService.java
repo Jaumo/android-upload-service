@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.annotation.Nullable;
 
 import net.gotev.uploadservice.http.HttpStack;
 import net.gotev.uploadservice.http.impl.HurlStack;
@@ -63,7 +64,7 @@ public final class UploadService extends Service {
      * It's not possible to run in foreground without notifications, as per Android policy
      * constraints, so if you set this to true, but you do upload tasks without a
      * notification configuration, the service will simply run in background mode.
-     *
+     * <p>
      * NOTE: As of Android Oreo, this setting is ignored as it always has to be true,
      * because the service must run in the foreground and expose a notification to the user.
      * https://developer.android.com/reference/android/content/Context.html#startForegroundService(android.content.Intent)
@@ -124,6 +125,7 @@ public final class UploadService extends Service {
     private static final String ACTION_UPLOAD_SUFFIX = ".uploadservice.action.upload";
     protected static final String PARAM_TASK_PARAMETERS = "taskParameters";
     protected static final String PARAM_TASK_CLASS = "taskClass";
+    protected static final String PARAM_SERVICE_PARAMETERS = "serviceParameters";
 
     // constants used in broadcast intents
     private static final String BROADCAST_ACTION_SUFFIX = ".uploadservice.broadcast.status";
@@ -138,6 +140,7 @@ public final class UploadService extends Service {
     private static volatile String foregroundUploadId = null;
     private ThreadPoolExecutor uploadThreadPool;
     private Timer idleTimer = null;
+    @Nullable private ServiceParameters serviceParameters = null;
 
     protected static String getActionUpload() {
         return NAMESPACE + ACTION_UPLOAD_SUFFIX;
@@ -149,6 +152,7 @@ public final class UploadService extends Service {
 
     /**
      * Stops the upload task with the given uploadId.
+     *
      * @param uploadId The unique upload id
      */
     public static synchronized void stopUpload(final String uploadId) {
@@ -160,6 +164,7 @@ public final class UploadService extends Service {
 
     /**
      * Gets the list of the currently active upload tasks.
+     *
      * @return list of uploadIDs or an empty list if no tasks are currently running
      */
     public static synchronized List<String> getTaskList() {
@@ -194,6 +199,7 @@ public final class UploadService extends Service {
 
     /**
      * Stops the service if no upload tasks are currently running
+     *
      * @param context application context
      * @return true if the service is getting stopped, false otherwise
      */
@@ -203,7 +209,8 @@ public final class UploadService extends Service {
 
     /**
      * Stops the service.
-     * @param context application context
+     *
+     * @param context   application context
      * @param forceStop stops the service no matter if some tasks are running
      * @return true if the service is getting stopped, false otherwise
      */
@@ -226,20 +233,9 @@ public final class UploadService extends Service {
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
         wakeLock.setReferenceCounted(false);
 
-        if (!wakeLock.isHeld())
-            wakeLock.acquire();
-
-        if (UPLOAD_POOL_SIZE <= 0) {
-            UPLOAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
+        if (!wakeLock.isHeld()) {
+            wakeLock.acquire(TimeUnit.MINUTES.toSeconds(5));
         }
-
-        // Creates a thread pool manager
-        uploadThreadPool = new ThreadPoolExecutor(
-                UPLOAD_POOL_SIZE,       // Initial pool size
-                UPLOAD_POOL_SIZE,       // Max pool size
-                KEEP_ALIVE_TIME_IN_SECONDS,
-                TimeUnit.SECONDS,
-                uploadTasksQueue);
     }
 
     @Override
@@ -257,8 +253,12 @@ public final class UploadService extends Service {
             throw new IllegalArgumentException("Hey dude, please set the namespace for your app by following the setup instructions: https://github.com/gotev/android-upload-service/wiki/Setup");
         }
 
+        serviceParameters = intent.getParcelableExtra(PARAM_SERVICE_PARAMETERS);
+
+        initializeUploadThreadPool();
+
         Logger.info(TAG, String.format(Locale.getDefault(), "Starting service with namespace: %s, " +
-                "upload pool size: %d, %ds idle thread keep alive time. Foreground execution is %s",
+                        "upload pool size: %d, %ds idle thread keep alive time. Foreground execution is %s",
                 NAMESPACE, UPLOAD_POOL_SIZE, KEEP_ALIVE_TIME_IN_SECONDS,
                 (isExecuteInForeground() ? "enabled" : "disabled")));
 
@@ -278,14 +278,34 @@ public final class UploadService extends Service {
 
         // increment by 2 because the notificationIncrementalId + 1 is used internally
         // in each UploadTask. Check its sources for more info about this.
-        notificationIncrementalId += 2;
+        if (serviceParameters != null && !serviceParameters.getShouldShareNotificationId()) {
+            notificationIncrementalId += 2;
+        }
+
         currentTask.setLastProgressNotificationTime(0)
-                   .setNotificationId(UPLOAD_NOTIFICATION_BASE_ID + notificationIncrementalId);
+                .setNotificationId(UPLOAD_NOTIFICATION_BASE_ID + notificationIncrementalId);
 
         uploadTasksMap.put(currentTask.params.id, currentTask);
         uploadThreadPool.execute(currentTask);
 
         return START_STICKY;
+    }
+
+    private void initializeUploadThreadPool() {
+        if (uploadThreadPool == null) {
+            if (UPLOAD_POOL_SIZE <= 0) {
+                UPLOAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
+            }
+
+            int uploadPoolSize = serviceParameters != null ? serviceParameters.getMaxConcurrentUploads() : UPLOAD_POOL_SIZE;
+
+            uploadThreadPool = new ThreadPoolExecutor(
+                    uploadPoolSize,       // Initial pool size
+                    uploadPoolSize,       // Max pool size
+                    KEEP_ALIVE_TIME_IN_SECONDS,
+                    TimeUnit.SECONDS,
+                    uploadTasksQueue);
+        }
     }
 
     private void clearIdleTimer() {
@@ -329,8 +349,9 @@ public final class UploadService extends Service {
             stopForeground(true);
         }
 
-        if (wakeLock.isHeld())
+        if (wakeLock.isHeld()) {
             wakeLock.release();
+        }
 
         uploadTasksMap.clear();
         uploadDelegates.clear();
@@ -340,6 +361,7 @@ public final class UploadService extends Service {
 
     /**
      * Creates a new task instance based on the requested task class in the intent.
+     *
      * @param intent intent passed to the service
      * @return task instance or null if the task class is not supported or invalid
      */
@@ -373,6 +395,7 @@ public final class UploadService extends Service {
 
     /**
      * Check if the task is currently the one shown in the foreground notification.
+     *
      * @param uploadId ID of the upload
      * @return true if the current upload task holds the foreground notification, otherwise false
      */
@@ -395,6 +418,7 @@ public final class UploadService extends Service {
     /**
      * Called by each task when it is completed (either successfully, with an error or due to
      * user cancellation).
+     *
      * @param uploadId the uploadID of the finished task
      */
     protected synchronized void taskCompleted(String uploadId) {
@@ -417,6 +441,7 @@ public final class UploadService extends Service {
     /**
      * Sets the delegate which will receive the events for the given upload request.
      * Those events will not be sent in broadcast, but only to the delegate.
+     *
      * @param uploadId uploadID of the upload request
      * @param delegate the delegate instance
      */
@@ -429,6 +454,7 @@ public final class UploadService extends Service {
 
     /**
      * Gets the delegate for an upload request.
+     *
      * @param uploadId uploadID of the upload request
      * @return {@link UploadStatusDelegate} or null if no delegate has been set for the given
      * uploadId

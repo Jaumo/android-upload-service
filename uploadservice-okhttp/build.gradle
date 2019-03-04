@@ -68,7 +68,7 @@ dependencies {
     api 'com.squareup.okhttp3:okhttp:3.12.1'
     //api "net.gotev:uploadservice:${version}"
     //comment the previous line and uncomment the next line for development (it uses the local lib)
-    api project(':uploadservice')
+    api project(':ext:android-upload-service:uploadservice')
 }
 
 Properties properties = new Properties()

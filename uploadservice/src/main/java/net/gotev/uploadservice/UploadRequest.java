@@ -3,6 +3,7 @@ package net.gotev.uploadservice;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.support.annotation.Nullable;
 
 import java.util.UUID;
 
@@ -22,15 +23,15 @@ public abstract class UploadRequest<B extends UploadRequest<B>> {
     /**
      * Creates a new upload request.
      *
-     * @param context application context
-     * @param uploadId unique ID to assign to this upload request. If is null or empty, a random
-     *                 UUID will be automatically generated. It's used in the broadcast receiver
-     *                 when receiving updates.
+     * @param context   application context
+     * @param uploadId  unique ID to assign to this upload request. If is null or empty, a random
+     *                  UUID will be automatically generated. It's used in the broadcast receiver
+     *                  when receiving updates.
      * @param serverUrl URL of the server side script that handles the request
      * @throws IllegalArgumentException if one or more arguments are not valid
      */
     public UploadRequest(final Context context, final String uploadId, final String serverUrl)
-        throws IllegalArgumentException {
+            throws IllegalArgumentException {
 
         if (context == null)
             throw new IllegalArgumentException("Context MUST not be null!");
@@ -51,20 +52,24 @@ public abstract class UploadRequest<B extends UploadRequest<B>> {
 
         params.serverUrl = serverUrl;
         Logger.debug(LOG_TAG, "Created new upload request to "
-                     + params.serverUrl + " with ID: " + params.id);
+                + params.serverUrl + " with ID: " + params.id);
     }
+
 
     /**
      * Start the background file upload service.
+     *
+     * @param serviceParameters Parameters to configure the UploadService
      * @return the uploadId string. If you have passed your own uploadId in the constructor, this
-     *         method will return that same uploadId, otherwise it will return the automatically
-     *         generated uploadId
+     * method will return that same uploadId, otherwise it will return the automatically
+     * generated uploadId
      */
-    public String startUpload() {
+    public String startUpload(@Nullable ServiceParameters serviceParameters) {
         UploadService.setUploadStatusDelegate(params.id, delegate);
 
         final Intent intent = new Intent(context, UploadService.class);
         this.initializeIntent(intent);
+        intent.putExtra(UploadService.PARAM_SERVICE_PARAMETERS, serviceParameters);
         intent.setAction(UploadService.getActionUpload());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -97,7 +102,7 @@ public abstract class UploadRequest<B extends UploadRequest<B>> {
 
     @SuppressWarnings("unchecked")
     protected final B self() {
-        return (B)this;
+        return (B) this;
     }
 
     /**
@@ -116,6 +121,7 @@ public abstract class UploadRequest<B extends UploadRequest<B>> {
 
     /**
      * Sets the automatic file deletion after successful upload.
+     *
      * @param autoDeleteFiles true to auto delete files included in the
      *                        request when the upload is completed successfully.
      *                        By default this setting is set to false, and nothing gets deleted.
@@ -144,6 +150,7 @@ public abstract class UploadRequest<B extends UploadRequest<B>> {
      * be called on your main thread, so you can safely update your UI from them. If you want to
      * send events for this upload in broadcast, and handle them in the
      * {@link UploadServiceBroadcastReceiver}, do not set the delegate or set it to null.
+     *
      * @param delegate instance of the delegate which will receive the events
      * @return self instance
      */
@@ -155,6 +162,7 @@ public abstract class UploadRequest<B extends UploadRequest<B>> {
     /**
      * Implement in subclasses to specify the class which will handle the the upload task.
      * The class must be a subclass of {@link UploadTask}.
+     *
      * @return class
      */
     protected abstract Class<? extends UploadTask> getTaskClass();

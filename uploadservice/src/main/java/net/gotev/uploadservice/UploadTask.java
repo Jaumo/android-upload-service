@@ -5,10 +5,14 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-
-import androidx.core.app.NotificationCompat;
 
 /**
  * Base class to subclass when creating upload tasks. It contains the logic common to all the tasks,
@@ -94,6 +96,16 @@ public abstract class UploadTask implements Runnable {
      * Counter of the upload attempts that has been made;
      */
     private int attempts;
+
+    /**
+     * A decoded and resized bitmap of the large icon
+     */
+    private Bitmap largeIconBitmap;
+
+    /**
+     * The path of the last bitmap that was rendered for the large icon
+     */
+    private String lastLargeIconBitmapRenderedPath;
 
     /**
      * Implementation of the upload logic.
@@ -295,10 +307,10 @@ public abstract class UploadTask implements Runnable {
 
         if (notificationConfig != null) {
             if (successfulUpload && notificationConfig.getCompleted().message != null) {
-                updateNotification(uploadInfo, notificationConfig.getCompleted());
+                updateNotification(uploadInfo, notificationConfig.getCompleted(), true);
 
             } else if (notificationConfig.getError().message != null) {
-                updateNotification(uploadInfo, notificationConfig.getError());
+                updateNotification(uploadInfo, notificationConfig.getError(), true);
             }
         }
 
@@ -323,6 +335,11 @@ public abstract class UploadTask implements Runnable {
             service.sendBroadcast(data.getIntent());
         }
 
+        if (largeIconBitmap != null) {
+            largeIconBitmap.recycle();
+            largeIconBitmap = null;
+        }
+
         service.taskCompleted(params.id);
     }
 
@@ -345,7 +362,7 @@ public abstract class UploadTask implements Runnable {
         final UploadNotificationConfig notificationConfig = params.notificationConfig;
 
         if (notificationConfig != null && notificationConfig.getCancelled().message != null) {
-            updateNotification(uploadInfo, notificationConfig.getCancelled());
+            updateNotification(uploadInfo, notificationConfig.getCancelled(), true);
         }
 
         BroadcastData data = new BroadcastData()
@@ -428,7 +445,7 @@ public abstract class UploadTask implements Runnable {
         final UploadNotificationConfig notificationConfig = params.notificationConfig;
 
         if (notificationConfig != null && notificationConfig.getError().message != null) {
-            updateNotification(uploadInfo, notificationConfig.getError());
+            updateNotification(uploadInfo, notificationConfig.getError(), false);
         }
 
         BroadcastData data = new BroadcastData()
@@ -463,6 +480,7 @@ public abstract class UploadTask implements Runnable {
 
         UploadNotificationStatusConfig statusConfig = params.notificationConfig.getProgress();
         notificationCreationTimeMillis = System.currentTimeMillis();
+        populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
@@ -470,8 +488,11 @@ public abstract class UploadTask implements Runnable {
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
                 .setContentIntent(statusConfig.getClickIntent(service))
                 .setSmallIcon(statusConfig.iconResourceID)
-                .setLargeIcon(statusConfig.largeIcon)
-                .setColor(statusConfig.iconColorResourceID)
+                .setLargeIcon(largeIconBitmap)
+                .setStyle(new NotificationCompat.BigPictureStyle()
+                        .bigPicture(largeIconBitmap)
+                        .bigLargeIcon(null))
+                .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
                 .setProgress(100, 0, true)
                 .setOngoing(true);
@@ -498,6 +519,7 @@ public abstract class UploadTask implements Runnable {
             return;
 
         UploadNotificationStatusConfig statusConfig = params.notificationConfig.getProgress();
+        populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
@@ -505,8 +527,11 @@ public abstract class UploadTask implements Runnable {
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
                 .setContentIntent(statusConfig.getClickIntent(service))
                 .setSmallIcon(statusConfig.iconResourceID)
-                .setLargeIcon(statusConfig.largeIcon)
-                .setColor(statusConfig.iconColorResourceID)
+                .setStyle(new NotificationCompat.BigPictureStyle()
+                        .bigPicture(largeIconBitmap)
+                        .bigLargeIcon(null))
+                .setLargeIcon(largeIconBitmap)
+                .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
                 .setProgress((int) uploadInfo.getTotalBytes(), (int) uploadInfo.getUploadedBytes(), false)
                 .setOngoing(true);
@@ -531,12 +556,14 @@ public abstract class UploadTask implements Runnable {
 
     }
 
-    private void updateNotification(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig) {
+    private void updateNotification(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig, boolean isTerminal) {
         if (params.notificationConfig == null) return;
 
         notificationManager.cancel(notificationId);
 
         if (statusConfig.message == null) return;
+
+        populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
         if (!statusConfig.autoClear) {
             NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getNotificationChannelId())
@@ -545,11 +572,17 @@ public abstract class UploadTask implements Runnable {
                     .setContentIntent(statusConfig.getClickIntent(service))
                     .setAutoCancel(statusConfig.clearOnAction)
                     .setSmallIcon(statusConfig.iconResourceID)
-                    .setLargeIcon(statusConfig.largeIcon)
-                    .setColor(statusConfig.iconColorResourceID)
+                    .setLargeIcon(largeIconBitmap)
+                    .setColor(statusConfig.iconColorInt)
                     .setGroup(UploadService.NAMESPACE)
                     .setProgress(0, 0, false)
                     .setOngoing(false);
+
+            if (!isTerminal) {
+                notification.setStyle(new NotificationCompat.BigPictureStyle()
+                        .bigPicture(largeIconBitmap)
+                        .bigLargeIcon(null));
+            }
 
             statusConfig.addActionsToNotificationBuilder(notification);
 
@@ -592,6 +625,44 @@ public abstract class UploadTask implements Runnable {
         return deleted;
     }
 
+    private void populateLargeIconBitmap(Dimensions dimensions, String path) {
+        if (largeIconBitmap == null || lastLargeIconBitmapRenderedPath.equalsIgnoreCase(path)) {
+            lastLargeIconBitmapRenderedPath = path;
+            largeIconBitmap = getLargeIconBitmap(dimensions, path);
+        }
+    }
+
+    @Nullable
+    private Bitmap getLargeIconBitmap(Dimensions dimensions, String path) {
+        try {
+            int targetWidth = Math.round(dimensions.getWidth());
+            int targetHeight = Math.round(dimensions.getHeight());
+
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, options);
+            int originalWidth = options.outWidth;
+            int originalHeight = options.outHeight;
+
+            if (targetWidth < 0) {
+                targetWidth = originalWidth;
+            }
+            if (targetHeight < 0) {
+                targetHeight = originalHeight;
+            }
+
+            int scaleFactor = Math.min(originalWidth / targetWidth, originalHeight / targetHeight);
+
+            options.inJustDecodeBounds = false;
+            options.inSampleSize = scaleFactor;
+            options.inPurgeable = true;
+
+            return BitmapFactory.decodeFile(path, options);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private static List<String> pathStringListFrom(List<UploadFile> files) {
         final List<String> filesLeft = new ArrayList<>(files.size());
         for (UploadFile f : files) {
@@ -602,6 +673,10 @@ public abstract class UploadTask implements Runnable {
 
     public final void cancel() {
         this.shouldContinue = false;
+
+        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+            largeIconBitmap.recycle();
+        }
     }
 
 }

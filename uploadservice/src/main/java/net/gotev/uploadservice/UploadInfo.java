@@ -2,6 +2,7 @@ package net.gotev.uploadservice;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,6 +10,7 @@ import java.util.List;
 
 /**
  * Contains upload information and statistics.
+ *
  * @author Aleksandar Gotev
  */
 public class UploadInfo implements Parcelable {
@@ -102,6 +104,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Returns the Upload ID.
+     *
      * @return string
      */
     public String getUploadId() {
@@ -110,6 +113,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets upload task's start timestamp in milliseconds.
+     *
      * @return long value
      */
     public long getStartTime() {
@@ -118,6 +122,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets upload task's elapsed time in milliseconds.
+     *
      * @return long value
      */
     public long getElapsedTime() {
@@ -127,6 +132,7 @@ public class UploadInfo implements Parcelable {
     /**
      * Gets the elapsed time as a string, expressed in seconds if the value is {@code < 60},
      * or expressed in minutes:seconds if the value is {@code >=} 60.
+     *
      * @return string representation of the elapsed time
      */
     public String getElapsedTimeString() {
@@ -147,6 +153,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the average upload rate in Kbit/s.
+     *
      * @return upload rate
      */
     public double getUploadRate() {
@@ -162,6 +169,7 @@ public class UploadInfo implements Parcelable {
     /**
      * Returns a string representation of the upload rate, expressed in the most convenient unit of
      * measurement (Mbit/s if the value is {@code >=} 1024, B/s if the value is {@code < 1}, otherwise Kbit/s)
+     *
      * @return string representation of the upload rate (e.g. 234 Kbit/s)
      */
     public String getUploadRateString() {
@@ -180,6 +188,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the list of the successfully uploaded files.
+     *
      * @return list of strings
      */
     public ArrayList<String> getSuccessfullyUploadedFiles() {
@@ -188,6 +197,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the list of all the files left to be uploaded.
+     *
      * @return list of strings
      */
     public ArrayList<String> getFilesLeft() {
@@ -196,6 +206,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the uploaded bytes.
+     *
      * @return long value
      */
     public long getUploadedBytes() {
@@ -204,6 +215,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets upload task's total bytes.
+     *
      * @return long value
      */
     public long getTotalBytes() {
@@ -212,6 +224,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the upload progress in percent (from 0 to 100).
+     *
      * @return integer value
      */
     public int getProgressPercent() {
@@ -224,6 +237,7 @@ public class UploadInfo implements Parcelable {
     /**
      * Gets the number of the retries that has been made during the upload process.
      * If no retries has been made, this value will be zero.
+     *
      * @return int value
      */
     public int getNumberOfRetries() {
@@ -232,6 +246,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the total number of files added to the upload request.
+     *
      * @return total number of files to upload
      */
     public int getTotalFiles() {
@@ -240,6 +255,7 @@ public class UploadInfo implements Parcelable {
 
     /**
      * Gets the notification ID.
+     *
      * @return Integer number or null if the upload task does not have a notification or the
      * notification is not dismissable at the moment (for example during upload progress).
      */
@@ -249,5 +265,16 @@ public class UploadInfo implements Parcelable {
 
     protected void setNotificationID(int id) {
         notificationID = id;
+    }
+
+    @Nullable
+    public String getCurrentFilePath() {
+        if (!filesLeft.isEmpty()) {
+            return filesLeft.get(0);
+        } else if (!successfullyUploadedFiles.isEmpty()) {
+            return successfullyUploadedFiles.get(successfullyUploadedFiles.size() - 1);
+        } else {
+            return null;
+        }
     }
 }

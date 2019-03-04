@@ -13,9 +13,10 @@ import java.util.ArrayList;
 public final class HttpUploadTaskParameters implements Parcelable {
 
     protected static final String PARAM_HTTP_TASK_PARAMETERS = "httpTaskParameters";
+    public static final String METHOD_POST = "POST";
 
     public String customUserAgent;
-    public String method = "POST";
+    public String method = METHOD_POST;
     public boolean usesFixedLengthStreamingMode = true;
     private ArrayList<NameValue> requestHeaders = new ArrayList<>(10);
     private ArrayList<NameValue> requestParameters = new ArrayList<>(10);
