@@ -11,6 +11,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 
 import java.io.File;
@@ -631,30 +632,35 @@ public abstract class UploadTask implements Runnable {
         }
     }
 
+    @Nullable
     private Bitmap getLargeIconBitmap(Dimensions dimensions, String path) {
-        int targetWidth = Math.round(dimensions.getWidth());
-        int targetHeight = Math.round(dimensions.getHeight());
+        try {
+            int targetWidth = Math.round(dimensions.getWidth());
+            int targetHeight = Math.round(dimensions.getHeight());
 
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(path, options);
-        int originalWidth = options.outWidth;
-        int originalHeight = options.outHeight;
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, options);
+            int originalWidth = options.outWidth;
+            int originalHeight = options.outHeight;
 
-        if (targetWidth < 0) {
-            targetWidth = originalWidth;
+            if (targetWidth < 0) {
+                targetWidth = originalWidth;
+            }
+            if (targetHeight < 0) {
+                targetHeight = originalHeight;
+            }
+
+            int scaleFactor = Math.min(originalWidth / targetWidth, originalHeight / targetHeight);
+
+            options.inJustDecodeBounds = false;
+            options.inSampleSize = scaleFactor;
+            options.inPurgeable = true;
+
+            return BitmapFactory.decodeFile(path, options);
+        } catch (Exception e) {
+            return null;
         }
-        if (targetHeight < 0) {
-            targetHeight = originalHeight;
-        }
-
-        int scaleFactor = Math.min(originalWidth / targetWidth, originalHeight / targetHeight);
-
-        options.inJustDecodeBounds = false;
-        options.inSampleSize = scaleFactor;
-        options.inPurgeable = true;
-
-        return BitmapFactory.decodeFile(path, options);
     }
 
     private static List<String> pathStringListFrom(List<UploadFile> files) {
@@ -667,6 +673,10 @@ public abstract class UploadTask implements Runnable {
 
     public final void cancel() {
         this.shouldContinue = false;
+
+        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+            largeIconBitmap.recycle();
+        }
     }
 
 }
