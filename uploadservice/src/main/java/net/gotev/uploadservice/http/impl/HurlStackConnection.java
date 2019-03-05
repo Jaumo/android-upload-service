@@ -145,7 +145,7 @@ public class HurlStackConnection implements HttpConnection {
         delegate.onBodyReady(bodyWriter);
         bodyWriter.flush();
 
-        return new ServerResponse(mConnection.getResponseCode(),
+        return new ServerResponse( mConnection.getURL().toString(), mConnection.getResponseCode(),
                 getServerResponseBody(), getServerResponseHeaders());
     }
 

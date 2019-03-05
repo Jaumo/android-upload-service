@@ -33,10 +33,12 @@ public class OkHttpStackConnection implements HttpConnection {
     private long mBodyLength;
     private String mContentType;
     private Response mResponse;
+    private String mUrl;
 
     public OkHttpStackConnection(OkHttpClient client, String method, String url) throws IOException {
         Logger.debug(getClass().getSimpleName(), "creating new connection");
 
+        mUrl = url;
         mResponse = null;
         mClient = client;
         mMethod = method;
@@ -116,7 +118,8 @@ public class OkHttpStackConnection implements HttpConnection {
 
         mResponse = mClient.newCall(mRequestBuilder.build()).execute();
 
-        return new ServerResponse(mResponse.code(),
+        return new ServerResponse(mUrl,
+                mResponse.code(),
                 mResponse.body().bytes(),
                 getServerResponseHeaders(mResponse.headers()));
     }

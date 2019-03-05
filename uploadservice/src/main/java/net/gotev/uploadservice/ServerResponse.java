@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
  */
 public class ServerResponse implements Parcelable {
 
+    private String url;
     private int httpCode;
     private byte[] body;
     private LinkedHashMap<String, String> headers;
@@ -32,6 +33,7 @@ public class ServerResponse implements Parcelable {
 
     /**
      * Creates a new server response object.
+     * @param url The url which the request was sent to
      * @param httpCode HTTP response code got from the server. If you are implementing another
      *                 protocol, set this to {@link UploadTask#TASK_COMPLETED_SUCCESSFULLY}
      *                 to inform that the task has been completed successfully. Integer values
@@ -41,7 +43,8 @@ public class ServerResponse implements Parcelable {
      * @param headers contains all the headers sent by the server. Set this to null or
      *                an empty map if the server has not sent any response header.
      */
-    public ServerResponse(int httpCode, byte[] body, LinkedHashMap<String, String> headers) {
+    public ServerResponse(String url, int httpCode, byte[] body, LinkedHashMap<String, String> headers) {
+        this.url = url;
         this.httpCode = httpCode;
 
         if (body != null && body.length > 0)
@@ -57,6 +60,7 @@ public class ServerResponse implements Parcelable {
 
     @SuppressWarnings("unchecked")
     protected ServerResponse(Parcel in) {
+        url = in.readString();
         httpCode = in.readInt();
         body = new byte[in.readInt()];
         in.readByteArray(body);
@@ -65,6 +69,7 @@ public class ServerResponse implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel parcel, int flags) {
+        parcel.writeString(url);
         parcel.writeInt(httpCode);
         parcel.writeInt(body.length);
         parcel.writeByteArray(body);
@@ -74,6 +79,14 @@ public class ServerResponse implements Parcelable {
     @Override
     public int describeContents() {
         return 0;
+    }
+
+    /**
+     * Gets the url of the request
+     * @return string value
+     */
+    public String getUrl() {
+        return url;
     }
 
     /**
