@@ -152,7 +152,7 @@ public abstract class UploadTask implements Runnable {
                         service.getString(UploadService.NOTIFICATION_CHANNEL_NAME_RESOURCE_ID)
                         : "Upload Service channel";
 
-                NotificationChannel channel = new NotificationChannel(notificationChannelId, channelName, NotificationManager.IMPORTANCE_LOW);
+                NotificationChannel channel = new NotificationChannel(notificationChannelId, channelName, UploadService.NOTIFICATION_CHANNEL_IMPORTANCE);
                 if (!params.notificationConfig.isRingToneEnabled()) {
                     channel.setSound(null, null);
                 }
