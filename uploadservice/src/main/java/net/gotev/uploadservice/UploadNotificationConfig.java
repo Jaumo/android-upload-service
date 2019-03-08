@@ -223,7 +223,7 @@ public final class UploadNotificationConfig implements Parcelable {
     }
 
     public String getHighImportanceNotificationChannelName() {
-        return highImportanceNotificationChannel.first;
+        return highImportanceNotificationChannel.second;
     }
 
     public String getLowImportanceNotificationChannelId() {
