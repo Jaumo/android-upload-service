@@ -63,7 +63,7 @@ public class Placeholders {
         tmp = tmp.replace(UPLOAD_RATE, uploadInfo.getUploadRateString());
         tmp = tmp.replace(UPLOADED_FILES, Integer.toString(successfullyUploadedFiles));
         tmp = tmp.replace(CURRENT_FILE_INDEX, Integer.toString(currentFileIndex));
-        tmp = tmp.replace(TOTAL_FILES, Integer.toString(totalFiles));
+        tmp = tmp.replace(TOTAL_FILES, totalFiles > 0 ? Integer.toString(totalFiles) : "1");
 
         return tmp;
     }
