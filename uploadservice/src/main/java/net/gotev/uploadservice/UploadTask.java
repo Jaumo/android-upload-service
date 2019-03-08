@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 
 import java.io.File;
 import java.io.IOException;
@@ -139,27 +140,26 @@ public abstract class UploadTask implements Runnable {
         this.service = service;
         this.mainThreadHandler = new Handler(service.getMainLooper());
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && params.notificationConfig != null) {
-            String notificationChannelId = params.notificationConfig.getNotificationChannelId();
+        if (params.notificationConfig != null) {
+            createNotificationChannel(params.notificationConfig.getHighImportanceNotificationChannelId(), params.notificationConfig.getHighImportanceNotificationChannelName(), NotificationManagerCompat.IMPORTANCE_HIGH);
+            createNotificationChannel(params.notificationConfig.getLowImportanceNotificationChannelId(), params.notificationConfig.getLowImportanceNotificationChannelName(), NotificationManagerCompat.IMPORTANCE_LOW);
+        }
+    }
 
+    private void createNotificationChannel(String notificationChannelId, String channelName, int importance) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (notificationChannelId == null) {
-                params.notificationConfig.setNotificationChannelId(UploadService.NAMESPACE);
-                notificationChannelId = UploadService.NAMESPACE;
+                notificationChannelId = UploadService.NAMESPACE + channelName;
             }
 
             if (notificationManager.getNotificationChannel(notificationChannelId) == null) {
-                String channelName = UploadService.NOTIFICATION_CHANNEL_NAME_RESOURCE_ID != 0 ?
-                        service.getString(UploadService.NOTIFICATION_CHANNEL_NAME_RESOURCE_ID)
-                        : "Upload Service channel";
-
-                NotificationChannel channel = new NotificationChannel(notificationChannelId, channelName, UploadService.NOTIFICATION_CHANNEL_IMPORTANCE);
+                NotificationChannel channel = new NotificationChannel(notificationChannelId, channelName, importance);
                 if (!params.notificationConfig.isRingToneEnabled()) {
                     channel.setSound(null, null);
                 }
                 notificationManager.createNotificationChannel(channel);
             }
         }
-
     }
 
     @Override
@@ -486,7 +486,7 @@ public abstract class UploadTask implements Runnable {
         notificationCreationTimeMillis = System.currentTimeMillis();
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getNotificationChannelId())
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getHighImportanceNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
                 .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
@@ -512,6 +512,10 @@ public abstract class UploadTask implements Runnable {
         }
     }
 
+    private String getChannelId(boolean b, String s, String notificationChannelId) {
+        return b ? s : notificationChannelId;
+    }
+
     /**
      * Informs the {@link UploadService} that the task has made some progress. You should call this
      * method from your task whenever you have successfully transferred some bytes to the server.
@@ -525,7 +529,9 @@ public abstract class UploadTask implements Runnable {
         UploadNotificationStatusConfig statusConfig = params.notificationConfig.getProgress();
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getNotificationChannelId())
+        String channelId = getChannelId(uploadInfo);
+
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
                 .setWhen(notificationCreationTimeMillis)
                 .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
@@ -568,9 +574,10 @@ public abstract class UploadTask implements Runnable {
         if (statusConfig.message == null) return;
 
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
+        String channelId = getChannelId(uploadInfo);
 
         if (!statusConfig.autoClear) {
-            NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getNotificationChannelId())
+            NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
                     .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
                     .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
                     .setContentIntent(statusConfig.getClickIntent(service))
@@ -683,4 +690,19 @@ public abstract class UploadTask implements Runnable {
         }
     }
 
+    /**
+     * We want to show the high importance channel at the start of an upload so the user is presented
+     * with a peek notification. After the upload has started, we want to minimize the notification,
+     * so we toggle it over to the low importance notification.
+     *
+     * @param uploadInfo
+     * @return
+     */
+    private String getChannelId(UploadInfo uploadInfo) {
+        if (uploadInfo.getSuccessfullyUploadedFiles().isEmpty() && uploadInfo.getTotalBytes() < 100) {
+            return params.notificationConfig.getHighImportanceNotificationChannelId();
+        } else {
+            return params.notificationConfig.getLowImportanceNotificationChannelId();
+        }
+    }
 }

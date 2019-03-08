@@ -4,6 +4,7 @@ import android.app.PendingIntent;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v4.util.Pair;
 
 /**
  * Contains the configuration of the upload notification.
@@ -13,11 +14,8 @@ import android.support.annotation.NonNull;
 public final class UploadNotificationConfig implements Parcelable {
 
     private boolean ringToneEnabled;
-
-    /**
-     * Notification channel ID
-     */
-    private String notificationChannelId;
+    private Pair<String, String> highImportanceNotificationChannel;
+    private Pair<String, String> lowImportanceNotificationChannel;
 
     private UploadNotificationStatusConfig progress;
     private UploadNotificationStatusConfig completed;
@@ -177,13 +175,26 @@ public final class UploadNotificationConfig implements Parcelable {
     }
 
     /**
-     * Sets notification channel ID
+     * Sets high importance notification channel, assuming (id, name) pair.
      *
-     * @param channelId notification channel ID
+     * @param id notification channel ID
+     * @param name notification channel name
      * @return {@link UploadNotificationConfig}
      */
-    public final UploadNotificationConfig setNotificationChannelId(@NonNull String channelId) {
-        this.notificationChannelId = channelId;
+    public final UploadNotificationConfig setHighImportanceNotificationChannel(@NonNull String id, @NonNull String name) {
+        this.highImportanceNotificationChannel = new Pair<>(id, name);
+        return this;
+    }
+
+    /**
+     * Sets low importance notification channel, assuming (id, name) pair.
+     *
+     * @param id   notification channel ID
+     * @param name notification channel name
+     * @return {@link UploadNotificationConfig}
+     */
+    public final UploadNotificationConfig setLowImportanceNotificationChannel(@NonNull String id, @NonNull String name) {
+        this.lowImportanceNotificationChannel = new Pair<>(id, name);
         return this;
     }
 
@@ -207,8 +218,20 @@ public final class UploadNotificationConfig implements Parcelable {
         return cancelled;
     }
 
-    public String getNotificationChannelId() {
-        return notificationChannelId;
+    public String getHighImportanceNotificationChannelId() {
+        return highImportanceNotificationChannel.first;
+    }
+
+    public String getHighImportanceNotificationChannelName() {
+        return highImportanceNotificationChannel.first;
+    }
+
+    public String getLowImportanceNotificationChannelId() {
+        return lowImportanceNotificationChannel.first;
+    }
+
+    public String getLowImportanceNotificationChannelName() {
+        return lowImportanceNotificationChannel.second;
     }
 
     @Override
@@ -218,7 +241,10 @@ public final class UploadNotificationConfig implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(this.notificationChannelId);
+        dest.writeString(this.highImportanceNotificationChannel.first);
+        dest.writeString(this.highImportanceNotificationChannel.second);
+        dest.writeString(this.lowImportanceNotificationChannel.first);
+        dest.writeString(this.lowImportanceNotificationChannel.second);
         dest.writeByte(this.ringToneEnabled ? (byte) 1 : (byte) 0);
         dest.writeParcelable(this.progress, flags);
         dest.writeParcelable(this.completed, flags);
@@ -227,7 +253,8 @@ public final class UploadNotificationConfig implements Parcelable {
     }
 
     protected UploadNotificationConfig(Parcel in) {
-        this.notificationChannelId = in.readString();
+        this.highImportanceNotificationChannel = new Pair<>(in.readString(), in.readString());
+        this.lowImportanceNotificationChannel = new Pair<>(in.readString(), in.readString());
         this.ringToneEnabled = in.readByte() != 0;
         this.progress = in.readParcelable(UploadNotificationStatusConfig.class.getClassLoader());
         this.completed = in.readParcelable(UploadNotificationStatusConfig.class.getClassLoader());

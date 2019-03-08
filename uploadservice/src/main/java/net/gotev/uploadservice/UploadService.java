@@ -8,8 +8,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.annotation.Nullable;
-import android.support.annotation.StringRes;
-import android.support.v4.app.NotificationManagerCompat;
 
 import net.gotev.uploadservice.http.HttpStack;
 import net.gotev.uploadservice.http.impl.HurlStack;
@@ -122,17 +120,6 @@ public final class UploadService extends Service {
      * We aim for 6 updates per second.
      */
     public static long PROGRESS_REPORT_INTERVAL = 166;
-
-    /**
-     * The name of the notification channel
-     */
-    @StringRes
-    public static int NOTIFICATION_CHANNEL_NAME_RESOURCE_ID = 0;
-
-    /**
-     * The importance of the notification channel
-     */
-    public static int NOTIFICATION_CHANNEL_IMPORTANCE = NotificationManagerCompat.IMPORTANCE_LOW;
 
     // constants used in the intent which starts this service
     private static final String ACTION_UPLOAD_SUFFIX = ".uploadservice.action.upload";
