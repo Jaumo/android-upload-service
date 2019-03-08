@@ -490,7 +490,6 @@ public abstract class UploadTask implements Runnable {
                 .setWhen(notificationCreationTimeMillis)
                 .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
-                .setContentIntent(statusConfig.getClickIntent(service))
                 .setSmallIcon(statusConfig.iconResourceID)
                 .setLargeIcon(largeIconBitmap)
                 .setStyle(new NotificationCompat.BigPictureStyle()
@@ -501,6 +500,13 @@ public abstract class UploadTask implements Runnable {
                 .setProgress(100, 0, true)
                 .setOngoing(true);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notification.setContentIntent(statusConfig.getClickIntent(service));
+        } else {
+            // Creates a heads up notification (peek) on devices with OS < Oreo.
+            notification.setFullScreenIntent(statusConfig.getClickIntent(service), true);
+        }
+
         statusConfig.addActionsToNotificationBuilder(notification);
 
         Notification builtNotification = notification.build();
@@ -510,10 +516,6 @@ public abstract class UploadTask implements Runnable {
         } else {
             notificationManager.notify(notificationId, builtNotification);
         }
-    }
-
-    private String getChannelId(boolean b, String s, String notificationChannelId) {
-        return b ? s : notificationChannelId;
     }
 
     /**
