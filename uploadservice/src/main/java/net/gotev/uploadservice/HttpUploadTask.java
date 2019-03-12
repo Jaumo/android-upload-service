@@ -109,4 +109,12 @@ public abstract class HttpUploadTask extends UploadTask
         broadcastProgress(uploadedBytes, totalBytes);
     }
 
+    @Override
+    public void cancel() {
+        super.cancel();
+
+        if (connection != null) {
+            connection.close();
+        }
+    }
 }

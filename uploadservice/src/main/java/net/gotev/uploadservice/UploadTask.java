@@ -11,6 +11,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
+import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
@@ -532,6 +533,12 @@ public abstract class UploadTask implements Runnable {
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
         String channelId = getChannelId(uploadInfo);
+        int totalBytes = (int) uploadInfo.getTotalBytes();
+
+        // This can happen at the start of an upload while size is being computed
+        if (totalBytes < 1) {
+            totalBytes = Integer.MAX_VALUE;
+        }
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
                 .setWhen(notificationCreationTimeMillis)
@@ -545,7 +552,7 @@ public abstract class UploadTask implements Runnable {
                 .setLargeIcon(largeIconBitmap)
                 .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
-                .setProgress((int) uploadInfo.getTotalBytes(), (int) uploadInfo.getUploadedBytes(), false)
+                .setProgress(totalBytes, (int) uploadInfo.getUploadedBytes(), false)
                 .setOngoing(true);
 
         statusConfig.addActionsToNotificationBuilder(notification);
@@ -684,7 +691,8 @@ public abstract class UploadTask implements Runnable {
         return filesLeft;
     }
 
-    public final void cancel() {
+    @CallSuper
+    public void cancel() {
         this.shouldContinue = false;
 
         if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
