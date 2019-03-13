@@ -34,12 +34,12 @@ public class Placeholders {
     /**
      * The current index of the task being uploaded
      */
-    public static final String CURRENT_TASK_INDEX = "[[CURRENT_FILE_INDEX]]";
+    public static final String CURRENT_TASK_INDEX = "[[CURRENT_TASK_INDEX]]";
 
     /**
      * Placeholder to display the total number of task to upload.
      */
-    public static final String TOTAL_TASKS = "[[TOTAL_FILES]]";
+    public static final String TOTAL_TASKS = "[[TOTAL_TASKS]]";
 
     /**
      * Replace placeholders in a string.
