@@ -165,7 +165,6 @@ public abstract class UploadTask implements Runnable {
 
     @Override
     public final void run() {
-        createNotification(new UploadInfo(params.id));
 
         attempts = 0;
 
@@ -175,6 +174,7 @@ public abstract class UploadTask implements Runnable {
             attempts++;
 
             try {
+                createNotification(new UploadInfo(params.id));
                 upload();
                 break;
 
@@ -496,12 +496,12 @@ public abstract class UploadTask implements Runnable {
                 .setProgress(100, 0, true)
                 .setOngoing(true);
 
-        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
-            notification.setLargeIcon(largeIconBitmap)
-                    .setStyle(new NotificationCompat.BigPictureStyle()
-                            .bigPicture(largeIconBitmap)
-                            .bigLargeIcon(null));
-        }
+//        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+//            notification.setLargeIcon(largeIconBitmap)
+//                    .setStyle(new NotificationCompat.BigPictureStyle()
+//                            .bigPicture(largeIconBitmap)
+//                            .bigLargeIcon(null));
+//        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification.setContentIntent(statusConfig.getClickIntent(service));
@@ -553,12 +553,12 @@ public abstract class UploadTask implements Runnable {
                 .setProgress(totalBytes, (int) uploadInfo.getUploadedBytes(), false)
                 .setOngoing(true);
 
-        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
-            notification.setLargeIcon(largeIconBitmap)
-                    .setStyle(new NotificationCompat.BigPictureStyle()
-                            .bigPicture(largeIconBitmap)
-                            .bigLargeIcon(null));
-        }
+//        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+//            notification.setLargeIcon(largeIconBitmap)
+//                    .setStyle(new NotificationCompat.BigPictureStyle()
+//                            .bigPicture(largeIconBitmap)
+//                            .bigLargeIcon(null));
+//        }
 
         statusConfig.addActionsToNotificationBuilder(notification);
 
@@ -606,12 +606,12 @@ public abstract class UploadTask implements Runnable {
                 notification.setLargeIcon(largeIconBitmap);
             }
 
-            if (!isTerminal) {
-                notification.setLargeIcon(largeIconBitmap)
-                        .setStyle(new NotificationCompat.BigPictureStyle()
-                                .bigPicture(largeIconBitmap)
-                                .bigLargeIcon(null));
-            }
+//            if (!isTerminal) {
+//                notification.setLargeIcon(largeIconBitmap)
+//                        .setStyle(new NotificationCompat.BigPictureStyle()
+//                                .bigPicture(largeIconBitmap)
+//                                .bigLargeIcon(null));
+//            }
 
             statusConfig.addActionsToNotificationBuilder(notification);
 
@@ -655,10 +655,10 @@ public abstract class UploadTask implements Runnable {
     }
 
     private void populateLargeIconBitmap(Dimensions dimensions, String path) {
-        if (largeIconBitmap == null || lastLargeIconBitmapRenderedPath.equalsIgnoreCase(path)) {
-            lastLargeIconBitmapRenderedPath = path;
-            largeIconBitmap = getLargeIconBitmap(dimensions, path);
-        }
+//        if (largeIconBitmap == null || lastLargeIconBitmapRenderedPath.equalsIgnoreCase(path)) {
+//            lastLargeIconBitmapRenderedPath = path;
+//            largeIconBitmap = getLargeIconBitmap(dimensions, path);
+//        }
     }
 
     @Nullable

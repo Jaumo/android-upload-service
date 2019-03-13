@@ -86,7 +86,7 @@ public final class UploadService extends Service {
     /**
      * Buffer size in bytes used for data transfer by the upload tasks.
      */
-    public static int BUFFER_SIZE = 4096;
+    public static int BUFFER_SIZE = 50000;
 
     /**
      * Sets the time to wait in milliseconds before the next attempt when an upload fails
