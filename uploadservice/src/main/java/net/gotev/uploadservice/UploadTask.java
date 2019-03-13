@@ -491,14 +491,17 @@ public abstract class UploadTask implements Runnable {
                 .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
                 .setSmallIcon(statusConfig.iconResourceID)
-                .setLargeIcon(largeIconBitmap)
-                .setStyle(new NotificationCompat.BigPictureStyle()
-                        .bigPicture(largeIconBitmap)
-                        .bigLargeIcon(null))
                 .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
                 .setProgress(100, 0, true)
                 .setOngoing(true);
+
+        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+            notification.setLargeIcon(largeIconBitmap)
+                    .setStyle(new NotificationCompat.BigPictureStyle()
+                            .bigPicture(largeIconBitmap)
+                            .bigLargeIcon(null));
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification.setContentIntent(statusConfig.getClickIntent(service));
@@ -545,14 +548,17 @@ public abstract class UploadTask implements Runnable {
                 .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
                 .setContentIntent(statusConfig.getClickIntent(service))
                 .setSmallIcon(statusConfig.iconResourceID)
-                .setStyle(new NotificationCompat.BigPictureStyle()
-                        .bigPicture(largeIconBitmap)
-                        .bigLargeIcon(null))
-                .setLargeIcon(largeIconBitmap)
                 .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
                 .setProgress(totalBytes, (int) uploadInfo.getUploadedBytes(), false)
                 .setOngoing(true);
+
+        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+            notification.setLargeIcon(largeIconBitmap)
+                    .setStyle(new NotificationCompat.BigPictureStyle()
+                            .bigPicture(largeIconBitmap)
+                            .bigLargeIcon(null));
+        }
 
         statusConfig.addActionsToNotificationBuilder(notification);
 
@@ -591,16 +597,20 @@ public abstract class UploadTask implements Runnable {
                     .setContentIntent(statusConfig.getClickIntent(service))
                     .setAutoCancel(statusConfig.clearOnAction)
                     .setSmallIcon(statusConfig.iconResourceID)
-                    .setLargeIcon(largeIconBitmap)
                     .setColor(statusConfig.iconColorInt)
                     .setGroup(UploadService.NAMESPACE)
                     .setProgress(0, 0, false)
                     .setOngoing(false);
 
+            if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+                notification.setLargeIcon(largeIconBitmap);
+            }
+
             if (!isTerminal) {
-                notification.setStyle(new NotificationCompat.BigPictureStyle()
-                        .bigPicture(largeIconBitmap)
-                        .bigLargeIcon(null));
+                notification.setLargeIcon(largeIconBitmap)
+                        .setStyle(new NotificationCompat.BigPictureStyle()
+                                .bigPicture(largeIconBitmap)
+                                .bigLargeIcon(null));
             }
 
             statusConfig.addActionsToNotificationBuilder(notification);
