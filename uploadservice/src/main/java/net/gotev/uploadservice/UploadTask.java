@@ -165,7 +165,6 @@ public abstract class UploadTask implements Runnable {
 
     @Override
     public final void run() {
-
         createNotification(new UploadInfo(params.id));
 
         attempts = 0;
@@ -489,8 +488,8 @@ public abstract class UploadTask implements Runnable {
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getHighImportanceNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
-                .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
-                .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
+                .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
+                .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
                 .setSmallIcon(statusConfig.iconResourceID)
                 .setLargeIcon(largeIconBitmap)
                 .setStyle(new NotificationCompat.BigPictureStyle()
@@ -542,8 +541,8 @@ public abstract class UploadTask implements Runnable {
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
                 .setWhen(notificationCreationTimeMillis)
-                .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
-                .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
+                .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
+                .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
                 .setContentIntent(statusConfig.getClickIntent(service))
                 .setSmallIcon(statusConfig.iconResourceID)
                 .setStyle(new NotificationCompat.BigPictureStyle()
@@ -587,8 +586,8 @@ public abstract class UploadTask implements Runnable {
 
         if (!statusConfig.autoClear) {
             NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
-                    .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo))
-                    .setContentText(Placeholders.replace(statusConfig.message, uploadInfo))
+                    .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
+                    .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
                     .setContentIntent(statusConfig.getClickIntent(service))
                     .setAutoCancel(statusConfig.clearOnAction)
                     .setSmallIcon(statusConfig.iconResourceID)

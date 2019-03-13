@@ -32,14 +32,14 @@ public class Placeholders {
     public static final String UPLOADED_FILES = "[[UPLOADED_FILES]]";
 
     /**
-     * The current index of the file being uploaded
+     * The current index of the task being uploaded
      */
-    public static final String CURRENT_FILE_INDEX = "[[CURRENT_FILE_INDEX]]";
+    public static final String CURRENT_TASK_INDEX = "[[CURRENT_FILE_INDEX]]";
 
     /**
-     * Placeholder to display the total number of files to upload.
+     * Placeholder to display the total number of task to upload.
      */
-    public static final String TOTAL_FILES = "[[TOTAL_FILES]]";
+    public static final String TOTAL_TASKS = "[[TOTAL_FILES]]";
 
     /**
      * Replace placeholders in a string.
@@ -48,22 +48,18 @@ public class Placeholders {
      * @param uploadInfo upload information data
      * @return string with replaced placeholders
      */
-    public static String replace(String string, UploadInfo uploadInfo) {
+    public static String replace(String string, UploadInfo uploadInfo, int currentTasksIndex, int totalTasks) {
         if (string == null || string.isEmpty())
             return "";
 
         String tmp;
 
-        int successfullyUploadedFiles = uploadInfo.getSuccessfullyUploadedFiles().size();
-        int totalFiles = uploadInfo.getTotalFiles();
-        int currentFileIndex = successfullyUploadedFiles + 1 < totalFiles ? successfullyUploadedFiles + 1 : totalFiles;
-
         tmp = string.replace(ELAPSED_TIME, uploadInfo.getElapsedTimeString());
         tmp = tmp.replace(PROGRESS, uploadInfo.getProgressPercent() + "%");
         tmp = tmp.replace(UPLOAD_RATE, uploadInfo.getUploadRateString());
-        tmp = tmp.replace(UPLOADED_FILES, Integer.toString(successfullyUploadedFiles));
-        tmp = tmp.replace(CURRENT_FILE_INDEX, Integer.toString(currentFileIndex));
-        tmp = tmp.replace(TOTAL_FILES, totalFiles > 0 ? Integer.toString(totalFiles) : "1");
+        tmp = tmp.replace(UPLOADED_FILES, Integer.toString(uploadInfo.getSuccessfullyUploadedFiles().size()));
+        tmp = tmp.replace(CURRENT_TASK_INDEX, Integer.toString(currentTasksIndex));
+        tmp = tmp.replace(TOTAL_TASKS, totalTasks > 0 ? Integer.toString(totalTasks) : "1");
 
         return tmp;
     }
