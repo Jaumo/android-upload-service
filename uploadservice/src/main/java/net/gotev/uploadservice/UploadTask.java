@@ -1,19 +1,30 @@
 package net.gotev.uploadservice;
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.text.Html;
+import android.util.Log;
+import android.util.TypedValue;
+import android.view.View;
+import android.view.ViewGroup;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,6 +84,9 @@ public abstract class UploadTask implements Runnable {
     private long lastProgressNotificationTime;
     private NotificationManager notificationManager;
     private long notificationCreationTimeMillis;
+
+    @Nullable private Snackbar snackbar = null;
+    @Nullable private Activity snackbarActivity = null;
 
     /**
      * Total bytes to transfer. You should initialize this value in the
@@ -332,6 +346,7 @@ public abstract class UploadTask implements Runnable {
             largeIconBitmap = null;
         }
 
+        cleanupSnackbar();
         service.taskCompleted(params.id);
     }
 
@@ -368,6 +383,7 @@ public abstract class UploadTask implements Runnable {
             service.sendBroadcast(data.getIntent());
         }
 
+        cleanupSnackbar();
         service.taskCompleted(params.id);
     }
 
@@ -542,6 +558,14 @@ public abstract class UploadTask implements Runnable {
 
         Notification builtNotification = notification.build();
 
+        String progress = " " + ((int) (((float) uploadInfo.getUploadedBytes() / (float) totalBytes) * 100.0f)) + "%";
+
+        showSnackbar(
+                Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()),
+                Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()) + progress,
+                statusConfig.getClickIntent(service)
+        );
+
         if (service.holdForegroundNotification(params.id, builtNotification)) {
             notificationManager.cancel(notificationId);
         } else {
@@ -583,6 +607,12 @@ public abstract class UploadTask implements Runnable {
             if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
                 notification.setLargeIcon(largeIconBitmap);
             }
+
+            showSnackbar(
+                    Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()),
+                    Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()),
+                    statusConfig.getClickIntent(service)
+            );
 
             statusConfig.addActionsToNotificationBuilder(notification);
 
@@ -693,6 +723,58 @@ public abstract class UploadTask implements Runnable {
             return params.notificationConfig.getHighImportanceNotificationChannelId();
         } else {
             return params.notificationConfig.getLowImportanceNotificationChannelId();
+        }
+    }
+
+    private void showSnackbar(String title, String message, PendingIntent pendingIntent) {
+        Activity activeActivity = ((CurrentActivityHolder) service.getApplication()).getCurrentActivity();
+
+        if (activeActivity == null) {
+            return;
+        }
+
+        if (snackbar == null || snackbarActivity != activeActivity) {
+            snackbarActivity = activeActivity;
+            View contentView = activeActivity.getWindow().getDecorView().findViewWithTag("content");
+            View snackbarView = contentView != null ? contentView : activeActivity.getWindow().getDecorView();
+            snackbar = Snackbar.make(snackbarView, Html.fromHtml("<b>" + title + "</b><br/>" + message), Snackbar.LENGTH_INDEFINITE);
+            ViewGroup.LayoutParams layoutParams = snackbar.getView().getLayoutParams();
+            if(layoutParams instanceof ViewGroup.MarginLayoutParams) {
+                ((ViewGroup.MarginLayoutParams)layoutParams).bottomMargin = getNavigationBarHeight(service);
+            }
+            snackbar.getView().setOnClickListener(v -> {
+                try {
+                    pendingIntent.send();
+                } catch (Exception e) {
+                    Log.e("Exception", e.getMessage(), e);
+                }
+            });
+            snackbar.show();
+        } else {
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.post(() -> snackbar.setText(Html.fromHtml("<b>" + title + "</b><br/>" + message)));
+        }
+    }
+
+    private void cleanupSnackbar() {
+        if(snackbar != null) {
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(() -> {
+                snackbar.dismiss();
+                snackbar = null;
+                snackbarActivity = null;
+            }, 3500);
+        }
+    }
+
+    private int getNavigationBarHeight(Context context) {
+        Resources resources = context.getResources();
+        int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
+
+        if (resourceId > 0) {
+           return resources.getDimensionPixelSize(resourceId);
+        } else {
+            return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, resources.getDisplayMetrics());
         }
     }
 }
