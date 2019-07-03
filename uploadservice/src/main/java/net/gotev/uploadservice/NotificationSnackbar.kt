@@ -2,6 +2,10 @@ package net.gotev.uploadservice
 
 import android.animation.LayoutTransition
 import android.animation.ObjectAnimator
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleObserver
+import android.arch.lifecycle.LifecycleOwner
+import android.arch.lifecycle.OnLifecycleEvent
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PorterDuff
@@ -21,7 +25,7 @@ import kotlinx.android.synthetic.main.view_notification_snackbar.view.*
 class NotificationSnackbar @JvmOverloads constructor(
         context: Context,
         attrs: AttributeSet? = null
-) : LinearLayout(context, attrs) {
+) : LinearLayout(context, attrs), LifecycleObserver {
     //region Statics
     companion object {
         private const val ANIMATION_DURATION = 500L
@@ -42,6 +46,22 @@ class NotificationSnackbar @JvmOverloads constructor(
         setBackgroundResource(R.drawable.notification_background)
         layoutTransition = LayoutTransition()
         ViewCompat.setElevation(this, 8f)
+
+        if(context is LifecycleOwner) {
+            context.lifecycle.addObserver(this)
+        }
+    }
+    //endregion
+
+    //region Lifecycle
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    fun onPause() {
+        imageView.setImageDrawable(null)
+        notificationHandler.removeCallbacksAndMessages(null)
+
+        if(parent != null) {
+            (parent as ViewGroup).removeView(this)
+        }
     }
     //endregion
 

@@ -79,10 +79,6 @@ public abstract class UploadTask implements Runnable {
     private NotificationManager notificationManager;
     private long notificationCreationTimeMillis;
 
-//    @Nullable private Snackbar snackbar = null;
-    @Nullable private Activity snackbarActivity = null;
-    @Nullable private NotificationSnackbar notificationSnackbar = null;
-
     /**
      * Total bytes to transfer. You should initialize this value in the
      * {@link UploadTask#upload()} method of your subclasses, before starting the upload data
@@ -336,7 +332,9 @@ public abstract class UploadTask implements Runnable {
             service.sendBroadcast(data.getIntent());
         }
 
-        cleanupResources();
+        if(service.getIndexOfCurrentUploadTask() == service.getTotalTasks()) {
+            cleanupResources();
+        }
 
         service.taskCompleted(params.id);
     }
@@ -374,7 +372,10 @@ public abstract class UploadTask implements Runnable {
             service.sendBroadcast(data.getIntent());
         }
 
-        cleanupResources();
+        if(service.getIndexOfCurrentUploadTask() == service.getTotalTasks()) {
+            cleanupResources();
+        }
+
         service.taskCompleted(params.id);
     }
 
@@ -715,35 +716,36 @@ public abstract class UploadTask implements Runnable {
 
         String title = getNotificationTitle(uploadInfo, statusConfig);
         String message = getNotificationContent(uploadInfo, statusConfig);
+        SnackbarHolder snackbarHolder = service.getSnackbarHolder();
 
-        if (notificationSnackbar == null || snackbarActivity != activeActivity) {
-            snackbarActivity = activeActivity;
-            ViewGroup contentView = activeActivity.getWindow().getDecorView().findViewWithTag("content");
-            ViewGroup snackbarView = contentView != null ? contentView : (ViewGroup) activeActivity.getWindow().getDecorView();
+        if (snackbarHolder.shouldBeRecreated(activeActivity)) {
+            snackbarHolder.setSnackbarActivity(activeActivity);
 
-            notificationSnackbar = new NotificationSnackbar(snackbarActivity);
+            NotificationSnackbar notificationSnackbar = new NotificationSnackbar(activeActivity);
+            snackbarHolder.setNotificationSnackbar(notificationSnackbar);
             notificationSnackbar.update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
-            notificationSnackbar.show(snackbarView);
+            notificationSnackbar.show((ViewGroup) activeActivity.getWindow().getDecorView());
             notificationSnackbar.setOnClickListener(v -> {
                 try {
-                    statusConfig.getClickIntent(snackbarActivity).send();
+                    statusConfig.getClickIntent(activeActivity).send();
                     notificationSnackbar.hide();
                 } catch (Exception e) {
                     Log.e("Pending Intent", e.getMessage(), e);
                 }
             });
-        } else {
-            notificationSnackbar.update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
+        } else if(snackbarHolder.getNotificationSnackbar() != null) {
+            snackbarHolder.getNotificationSnackbar().update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
         }
     }
 
     private void cleanupResources() {
-        if (notificationSnackbar != null) {
+        SnackbarHolder snackbarHolder = service.getSnackbarHolder();
+
+        if (snackbarHolder.getNotificationSnackbar() != null) {
             Handler handler = new Handler(Looper.getMainLooper());
             handler.postDelayed(() -> {
-                notificationSnackbar.hide();
-                notificationSnackbar = null;
-                snackbarActivity = null;
+                snackbarHolder.getNotificationSnackbar().hide();
+                snackbarHolder.clear();
 
                 if (largeIconBitmap != null) {
                     largeIconBitmap.recycle();
