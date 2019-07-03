@@ -4,10 +4,8 @@ import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
@@ -17,13 +15,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
-import android.text.Html;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.View;
 import android.view.ViewGroup;
 
 import java.io.File;
@@ -85,8 +79,9 @@ public abstract class UploadTask implements Runnable {
     private NotificationManager notificationManager;
     private long notificationCreationTimeMillis;
 
-    @Nullable private Snackbar snackbar = null;
+//    @Nullable private Snackbar snackbar = null;
     @Nullable private Activity snackbarActivity = null;
+    @Nullable private NotificationSnackbar notificationSnackbar = null;
 
     /**
      * Total bytes to transfer. You should initialize this value in the
@@ -341,12 +336,8 @@ public abstract class UploadTask implements Runnable {
             service.sendBroadcast(data.getIntent());
         }
 
-        if (largeIconBitmap != null) {
-            largeIconBitmap.recycle();
-            largeIconBitmap = null;
-        }
+        cleanupResources();
 
-        cleanupSnackbar();
         service.taskCompleted(params.id);
     }
 
@@ -383,7 +374,7 @@ public abstract class UploadTask implements Runnable {
             service.sendBroadcast(data.getIntent());
         }
 
-        cleanupSnackbar();
+        cleanupResources();
         service.taskCompleted(params.id);
     }
 
@@ -482,8 +473,8 @@ public abstract class UploadTask implements Runnable {
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getHighImportanceNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
-                .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
-                .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
+                .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
+                .setContentText(getNotificationContent(uploadInfo, statusConfig))
                 .setSmallIcon(statusConfig.iconResourceID)
                 .setColor(statusConfig.iconColorInt)
                 .setGroup(UploadService.NAMESPACE)
@@ -538,8 +529,8 @@ public abstract class UploadTask implements Runnable {
 
         NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
                 .setWhen(notificationCreationTimeMillis)
-                .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
-                .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
+                .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
+                .setContentText(getNotificationContent(uploadInfo, statusConfig))
                 .setContentIntent(statusConfig.getClickIntent(service))
                 .setSmallIcon(statusConfig.iconResourceID)
                 .setColor(statusConfig.iconColorInt)
@@ -558,13 +549,7 @@ public abstract class UploadTask implements Runnable {
 
         Notification builtNotification = notification.build();
 
-        String progress = " " + ((int) (((float) uploadInfo.getUploadedBytes() / (float) totalBytes) * 100.0f)) + "%";
-
-        showSnackbar(
-                Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()),
-                Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()) + progress,
-                statusConfig.getClickIntent(service)
-        );
+        showSnackbar(uploadInfo, statusConfig, uploadInfo.getUploadedBytes(), totalBytes);
 
         if (service.holdForegroundNotification(params.id, builtNotification)) {
             notificationManager.cancel(notificationId);
@@ -594,8 +579,8 @@ public abstract class UploadTask implements Runnable {
 
         if (!statusConfig.autoClear) {
             NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
-                    .setContentTitle(Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
-                    .setContentText(Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()))
+                    .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
+                    .setContentText(getNotificationContent(uploadInfo, statusConfig))
                     .setContentIntent(statusConfig.getClickIntent(service))
                     .setAutoCancel(statusConfig.clearOnAction)
                     .setSmallIcon(statusConfig.iconResourceID)
@@ -608,12 +593,7 @@ public abstract class UploadTask implements Runnable {
                 notification.setLargeIcon(largeIconBitmap);
             }
 
-            showSnackbar(
-                    Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()),
-                    Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks()),
-                    statusConfig.getClickIntent(service)
-            );
-
+            showSnackbar(uploadInfo, statusConfig, 0, 0);
             statusConfig.addActionsToNotificationBuilder(notification);
 
             setRingtone(notification);
@@ -726,55 +706,65 @@ public abstract class UploadTask implements Runnable {
         }
     }
 
-    private void showSnackbar(String title, String message, PendingIntent pendingIntent) {
+    private void showSnackbar(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig, long uploadedBytes, long totalBytes) {
         Activity activeActivity = ((CurrentActivityHolder) service.getApplication()).getCurrentActivity();
 
         if (activeActivity == null) {
             return;
         }
 
-        if (snackbar == null || snackbarActivity != activeActivity) {
+        String title = getNotificationTitle(uploadInfo, statusConfig);
+        String message = getNotificationContent(uploadInfo, statusConfig);
+
+        if (notificationSnackbar == null || snackbarActivity != activeActivity) {
             snackbarActivity = activeActivity;
-            View contentView = activeActivity.getWindow().getDecorView().findViewWithTag("content");
-            View snackbarView = contentView != null ? contentView : activeActivity.getWindow().getDecorView();
-            snackbar = Snackbar.make(snackbarView, Html.fromHtml("<b>" + title + "</b><br/>" + message), Snackbar.LENGTH_INDEFINITE);
-            ViewGroup.LayoutParams layoutParams = snackbar.getView().getLayoutParams();
-            if(layoutParams instanceof ViewGroup.MarginLayoutParams) {
-                ((ViewGroup.MarginLayoutParams)layoutParams).bottomMargin = getNavigationBarHeight(service);
-            }
-            snackbar.getView().setOnClickListener(v -> {
+            ViewGroup contentView = activeActivity.getWindow().getDecorView().findViewWithTag("content");
+            ViewGroup snackbarView = contentView != null ? contentView : (ViewGroup) activeActivity.getWindow().getDecorView();
+
+            notificationSnackbar = new NotificationSnackbar(snackbarActivity);
+            notificationSnackbar.update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
+            notificationSnackbar.show(snackbarView);
+            notificationSnackbar.setOnClickListener(v -> {
                 try {
-                    pendingIntent.send();
+                    statusConfig.getClickIntent(snackbarActivity).send();
+                    notificationSnackbar.hide();
                 } catch (Exception e) {
-                    Log.e("Exception", e.getMessage(), e);
+                    Log.e("Pending Intent", e.getMessage(), e);
                 }
             });
-            snackbar.show();
         } else {
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.post(() -> snackbar.setText(Html.fromHtml("<b>" + title + "</b><br/>" + message)));
+            notificationSnackbar.update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
         }
     }
 
-    private void cleanupSnackbar() {
-        if(snackbar != null) {
+    private void cleanupResources() {
+        if (notificationSnackbar != null) {
             Handler handler = new Handler(Looper.getMainLooper());
             handler.postDelayed(() -> {
-                snackbar.dismiss();
-                snackbar = null;
+                notificationSnackbar.hide();
+                notificationSnackbar = null;
                 snackbarActivity = null;
+
+                if (largeIconBitmap != null) {
+                    largeIconBitmap.recycle();
+                    largeIconBitmap = null;
+                }
             }, 3500);
+        }
+        else {
+            if (largeIconBitmap != null) {
+                largeIconBitmap.recycle();
+                largeIconBitmap = null;
+            }
+
         }
     }
 
-    private int getNavigationBarHeight(Context context) {
-        Resources resources = context.getResources();
-        int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
+    private String getNotificationTitle(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig) {
+        return Placeholders.replace(statusConfig.title, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks());
+    }
 
-        if (resourceId > 0) {
-           return resources.getDimensionPixelSize(resourceId);
-        } else {
-            return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48, resources.getDisplayMetrics());
-        }
+    private String getNotificationContent(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig) {
+        return Placeholders.replace(statusConfig.message, uploadInfo, service.getIndexOfCurrentUploadTask(), service.getTotalTasks());
     }
 }
