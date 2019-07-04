@@ -142,7 +142,6 @@ public final class UploadService extends Service {
     private ThreadPoolExecutor uploadThreadPool;
     private Timer idleTimer = null;
     @Nullable private ServiceParameters serviceParameters = null;
-    private SnackbarHolder snackbarHolder = new SnackbarHolder();
 
     protected static String getActionUpload() {
         return NAMESPACE + ACTION_UPLOAD_SUFFIX;
@@ -507,13 +506,5 @@ public final class UploadService extends Service {
      */
     public int getTotalTasks() {
         return uploadTasksMap.size() + completedTasksMap.size();
-    }
-
-    public SnackbarHolder getSnackbarHolder() {
-        return snackbarHolder;
-    }
-
-    public void setSnackbarHolder(SnackbarHolder snackbarHolder) {
-        this.snackbarHolder = snackbarHolder;
     }
 }

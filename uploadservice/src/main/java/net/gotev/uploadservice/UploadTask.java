@@ -1,6 +1,5 @@
 package net.gotev.uploadservice;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -17,8 +16,9 @@ import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
-import android.util.Log;
-import android.view.ViewGroup;
+
+import net.gotev.uploadservice.snackbar.NotificationSnackbarModel;
+import net.gotev.uploadservice.snackbar.NotificationSnackbarRepository;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+
+import static net.gotev.uploadservice.snackbar.NotificationSnackbar.HIDE_DURATION_MS;
 
 /**
  * Base class to subclass when creating upload tasks. It contains the logic common to all the tasks,
@@ -717,58 +719,29 @@ public abstract class UploadTask implements Runnable {
     }
 
     private void showSnackbar(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig, long uploadedBytes, long totalBytes) {
-        Activity activeActivity = ((CurrentActivityHolder) service.getApplication()).getCurrentActivity();
-
-        if (activeActivity == null) {
-            return;
-        }
-
         String title = getNotificationTitle(uploadInfo, statusConfig);
         String message = getNotificationContent(uploadInfo, statusConfig);
-        SnackbarHolder snackbarHolder = service.getSnackbarHolder();
-        NotificationSnackbar.NotificationSnackbarModel model = new NotificationSnackbar.NotificationSnackbarModel(title, message, uploadedBytes, totalBytes, statusConfig.iconResourceID, statusConfig.iconColorInt, largeIconBitmap);
-
-        if (snackbarHolder.shouldBeRecreated(activeActivity)) {
-            snackbarHolder.setSnackbarActivity(activeActivity);
-
-            NotificationSnackbar notificationSnackbar = new NotificationSnackbar(activeActivity);
-            snackbarHolder.setNotificationSnackbar(notificationSnackbar);
-            notificationSnackbar.update(model);
-            notificationSnackbar.show((ViewGroup) activeActivity.getWindow().getDecorView());
-            notificationSnackbar.setOnClickListener(v -> {
-                try {
-                    statusConfig.getClickIntent(activeActivity).send();
-                    notificationSnackbar.hide();
-                } catch (Exception e) {
-                    Log.e("Pending Intent", e.getMessage(), e);
-                }
-            });
-        } else if(snackbarHolder.getNotificationSnackbar() != null) {
-            snackbarHolder.getNotificationSnackbar().update(model);
-        }
+        NotificationSnackbarModel model = new NotificationSnackbarModel(title, message, uploadedBytes, totalBytes, statusConfig.iconResourceID, statusConfig.iconColorInt, largeIconBitmap, statusConfig.clickIntent);
+        NotificationSnackbarRepository.INSTANCE.getModel().postValue(model);
     }
 
     private void cleanupResources() {
-        SnackbarHolder snackbarHolder = service.getSnackbarHolder();
+        boolean hadSnackbar = NotificationSnackbarRepository.INSTANCE.getModel().getValue() != null;
+        NotificationSnackbarRepository.INSTANCE.getModel().postValue(null);
 
-        if (snackbarHolder.getNotificationSnackbar() != null) {
+        if (hadSnackbar) {
             Handler handler = new Handler(Looper.getMainLooper());
             handler.postDelayed(() -> {
-                snackbarHolder.getNotificationSnackbar().hide();
-                snackbarHolder.clear();
-
                 if (largeIconBitmap != null) {
                     largeIconBitmap.recycle();
                     largeIconBitmap = null;
                 }
-            }, 3500);
-        }
-        else {
+            }, HIDE_DURATION_MS);
+        } else {
             if (largeIconBitmap != null) {
                 largeIconBitmap.recycle();
                 largeIconBitmap = null;
             }
-
         }
     }
 

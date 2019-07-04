@@ -1,5 +1,6 @@
-package net.gotev.uploadservice
+package net.gotev.uploadservice.snackbar
 
+import android.animation.Animator
 import android.animation.LayoutTransition
 import android.animation.ObjectAnimator
 import android.arch.lifecycle.Lifecycle
@@ -7,14 +8,12 @@ import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.LifecycleOwner
 import android.arch.lifecycle.OnLifecycleEvent
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.PorterDuff
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.support.annotation.ColorInt
-import android.support.annotation.DrawableRes
 import android.support.v4.view.ViewCompat
+import android.support.v4.view.WindowInsetsCompat
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -23,6 +22,7 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.LinearLayout
 import kotlinx.android.synthetic.main.view_notification_snackbar.view.*
+import net.gotev.uploadservice.R
 
 class NotificationSnackbar @JvmOverloads constructor(
         context: Context,
@@ -31,23 +31,13 @@ class NotificationSnackbar @JvmOverloads constructor(
     //region Statics
     companion object {
         private const val ANIMATION_DURATION = 500L
+        const val HIDE_DURATION_MS = 3500
     }
-    //endregion
-
-    //region Classes
-    data class NotificationSnackbarModel(
-            val title: String?,
-            val message: String?,
-            val uploadedBytes: Long = 0,
-            val totalBytes: Long = 0,
-            @DrawableRes val iconResourceID: Int,
-            @ColorInt val iconColorInt: Int,
-            val iconBitmap: Bitmap?
-    )
     //endregion
 
     //region Variables
     private val notificationHandler = Handler(Looper.getMainLooper())
+    private var windowInsetsCompat: WindowInsetsCompat? = null
     //endregion
 
     //region Constructor
@@ -61,19 +51,19 @@ class NotificationSnackbar @JvmOverloads constructor(
         layoutTransition = LayoutTransition()
         ViewCompat.setElevation(this, 8f)
 
-        if(context is LifecycleOwner) {
+        if (context is LifecycleOwner) {
             context.lifecycle.addObserver(this)
         }
     }
     //endregion
 
     //region Lifecycle
-    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-    fun onPause() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    fun onDestroy() {
         imageView.setImageDrawable(null)
         notificationHandler.removeCallbacksAndMessages(null)
 
-        if(parent != null) {
+        if (parent != null) {
             (parent as ViewGroup).removeView(this)
         }
     }
@@ -116,40 +106,24 @@ class NotificationSnackbar @JvmOverloads constructor(
                 container.addView(this, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-                requestApplyInsets()
-            }
-
-            ViewCompat.setOnApplyWindowInsetsListener(this) { view, windowInsetsCompat ->
-                val margin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8f, context.resources.displayMetrics).toInt()
-
-                if (layoutParams is MarginLayoutParams) {
-                    val marginLayoutParams = layoutParams as MarginLayoutParams
-                    marginLayoutParams.topMargin = windowInsetsCompat.stableInsetTop + windowInsetsCompat.systemWindowInsetTop + margin
-                    marginLayoutParams.leftMargin = margin
-                    marginLayoutParams.rightMargin = margin
-                    layoutParams = marginLayoutParams
-                    translationY = (marginLayoutParams.topMargin + measuredHeight) * -1f
+            if (windowInsetsCompat == null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+                    requestApplyInsets()
                 }
 
-                visibility = View.VISIBLE
-
-                if (shouldAnimate) {
-                    val objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, 0f)
-                    objectAnimator.duration = ANIMATION_DURATION
-                    objectAnimator.interpolator = AccelerateDecelerateInterpolator()
-                    objectAnimator.start()
-                } else {
-                    translationY = 0f
+                ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsetsCompat ->
+                    this.windowInsetsCompat = windowInsetsCompat
+                    displaySnackbar(shouldAnimate)
+                    windowInsetsCompat
                 }
-
-                windowInsetsCompat
+            } else {
+                displaySnackbar(shouldAnimate)
             }
         }
     }
 
     @JvmOverloads
-    fun hide(shouldAnimate: Boolean = true) {
+    fun hide(shouldAnimate: Boolean = true, shouldClearNotification: Boolean = false) {
         notificationHandler.post {
             val layoutParams = layoutParams
             val marginTop = if (layoutParams is MarginLayoutParams) layoutParams.topMargin else 0
@@ -159,10 +133,63 @@ class NotificationSnackbar @JvmOverloads constructor(
                 val objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, translationEnd)
                 objectAnimator.duration = ANIMATION_DURATION
                 objectAnimator.interpolator = AccelerateDecelerateInterpolator()
+                objectAnimator.addListener(object : Animator.AnimatorListener {
+                    override fun onAnimationEnd(animation: Animator?) {
+                        cleanup(shouldClearNotification)
+                    }
+
+                    override fun onAnimationCancel(animation: Animator?) {
+                        cleanup(shouldClearNotification)
+                    }
+
+                    override fun onAnimationRepeat(animation: Animator?) {
+                        // Ignored
+                    }
+
+                    override fun onAnimationStart(animation: Animator?) {
+                        // Ignored
+                    }
+                })
                 objectAnimator.start()
             } else {
                 translationY = translationEnd
+                cleanup(shouldClearNotification)
             }
+        }
+    }
+    //endregion
+
+    //region Helpers
+    private fun displaySnackbar(shouldAnimate: Boolean = true) {
+        val margin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8f, context.resources.displayMetrics).toInt()
+        val topInsets = ((windowInsetsCompat?.stableInsetTop ?: 0) + (windowInsetsCompat?.systemWindowInsetTop ?: 0))
+
+        if (layoutParams is MarginLayoutParams) {
+            val marginLayoutParams = layoutParams as MarginLayoutParams
+            marginLayoutParams.topMargin = topInsets + margin
+            marginLayoutParams.leftMargin = margin
+            marginLayoutParams.rightMargin = margin
+            layoutParams = marginLayoutParams
+            translationY = (marginLayoutParams.topMargin + measuredHeight) * -1f
+        }
+
+        visibility = View.VISIBLE
+
+        if (shouldAnimate) {
+            val objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, 0f)
+            objectAnimator.duration = ANIMATION_DURATION
+            objectAnimator.interpolator = AccelerateDecelerateInterpolator()
+            objectAnimator.start()
+        } else {
+            translationY = 0f
+        }
+    }
+
+    private fun cleanup(shouldClearNotification: Boolean) {
+        imageView.setImageDrawable(null)
+
+        if (shouldClearNotification) {
+            NotificationSnackbarRepository.model.postValue(null)
         }
     }
     //endregion
