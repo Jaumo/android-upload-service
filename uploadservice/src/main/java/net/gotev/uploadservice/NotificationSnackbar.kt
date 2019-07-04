@@ -12,6 +12,8 @@ import android.graphics.PorterDuff
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.support.annotation.ColorInt
+import android.support.annotation.DrawableRes
 import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -30,6 +32,18 @@ class NotificationSnackbar @JvmOverloads constructor(
     companion object {
         private const val ANIMATION_DURATION = 500L
     }
+    //endregion
+
+    //region Classes
+    data class NotificationSnackbarModel(
+            val title: String?,
+            val message: String?,
+            val uploadedBytes: Long = 0,
+            val totalBytes: Long = 0,
+            @DrawableRes val iconResourceID: Int,
+            @ColorInt val iconColorInt: Int,
+            val iconBitmap: Bitmap?
+    )
     //endregion
 
     //region Variables
@@ -66,28 +80,30 @@ class NotificationSnackbar @JvmOverloads constructor(
     //endregion
 
     //region Public Methods
-    fun update(title: String, message: String, statusConfig: UploadNotificationStatusConfig, uploadedBytes: Long, totalBytes: Long, iconBitmap: Bitmap?) {
+    fun update(model: NotificationSnackbarModel) {
         notificationHandler.post {
-            titleText.text = title
-            messageText.text = message
-            progressBar.progress = uploadedBytes.toInt()
-            progressBar.max = totalBytes.toInt()
-            progressBar.indeterminateDrawable.setColorFilter(statusConfig.iconColorInt, PorterDuff.Mode.SRC_ATOP)
+            model.run {
+                titleText.text = title
+                messageText.text = message
+                progressBar.progress = uploadedBytes.toInt()
+                progressBar.max = totalBytes.toInt()
+                progressBar.indeterminateDrawable.setColorFilter(iconColorInt, PorterDuff.Mode.SRC_ATOP)
 
-            if (totalBytes > 0) {
-                messageText.visibility = View.GONE
-                progressBar.visibility = View.VISIBLE
-            } else {
-                progressBar.visibility = View.GONE
-                messageText.visibility = View.VISIBLE
-            }
+                if (totalBytes > 0) {
+                    messageText.visibility = View.GONE
+                    progressBar.visibility = View.VISIBLE
+                } else {
+                    progressBar.visibility = View.GONE
+                    messageText.visibility = View.VISIBLE
+                }
 
-            if (iconBitmap != null && !iconBitmap.isRecycled) {
-                imageView.setImageBitmap(iconBitmap)
-                imageView.clearColorFilter()
-            } else {
-                imageView.setImageResource(statusConfig.iconResourceID)
-                imageView.setColorFilter(statusConfig.iconColorInt)
+                if (iconBitmap != null && !iconBitmap.isRecycled) {
+                    imageView.setImageBitmap(iconBitmap)
+                    imageView.clearColorFilter()
+                } else {
+                    imageView.setImageResource(iconResourceID)
+                    imageView.setColorFilter(iconColorInt)
+                }
             }
         }
     }

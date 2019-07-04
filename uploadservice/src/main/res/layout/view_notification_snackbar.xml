@@ -17,9 +17,9 @@
 
         <TextView
             android:id="@+id/titleText"
+            android:maxLines="1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
             android:textStyle="bold"
             tools:text="Upload in Progress"/>
 
@@ -27,7 +27,7 @@
             android:id="@+id/messageText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:maxLines="4"
             tools:text="Upload in Progress"/>
 
         <ProgressBar
@@ -42,9 +42,10 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_gravity="center_vertical"
+        android:scaleType="fitXY"
         android:layout_weight="0"
         android:contentDescription="Photo"
         android:gravity="center"
-        tools:background="@color/cardview_dark_background"/>
+        tools:background="#ff0000"/>
 
 </merge>

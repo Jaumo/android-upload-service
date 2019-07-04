@@ -514,8 +514,10 @@ public abstract class UploadTask implements Runnable {
      * @param uploadInfo upload information and statistics
      */
     private void updateNotificationProgress(UploadInfo uploadInfo) {
-        if (params.notificationConfig == null || params.notificationConfig.getProgress().message == null)
+        // Guard Clause
+        if (params.notificationConfig == null || params.notificationConfig.getProgress().message == null) {
             return;
+        }
 
         UploadNotificationStatusConfig statusConfig = params.notificationConfig.getProgress();
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
@@ -528,34 +530,36 @@ public abstract class UploadTask implements Runnable {
             totalBytes = Integer.MAX_VALUE;
         }
 
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
-                .setWhen(notificationCreationTimeMillis)
-                .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
-                .setContentText(getNotificationContent(uploadInfo, statusConfig))
-                .setContentIntent(statusConfig.getClickIntent(service))
-                .setSmallIcon(statusConfig.iconResourceID)
-                .setColor(statusConfig.iconColorInt)
-                .setGroup(UploadService.NAMESPACE)
-                .setProgress(totalBytes, (int) uploadInfo.getUploadedBytes(), false)
-                .setOngoing(true);
+        if (NotificationManagerCompat.from(service).areNotificationsEnabled()) {
+            NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
+                    .setWhen(notificationCreationTimeMillis)
+                    .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
+                    .setContentText(getNotificationContent(uploadInfo, statusConfig))
+                    .setContentIntent(statusConfig.getClickIntent(service))
+                    .setSmallIcon(statusConfig.iconResourceID)
+                    .setColor(statusConfig.iconColorInt)
+                    .setGroup(UploadService.NAMESPACE)
+                    .setProgress(totalBytes, (int) uploadInfo.getUploadedBytes(), false)
+                    .setOngoing(true);
 
-        if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
-            notification.setLargeIcon(largeIconBitmap)
-                    .setStyle(new NotificationCompat.BigPictureStyle()
-                            .bigPicture(largeIconBitmap)
-                            .bigLargeIcon(null));
-        }
+            if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+                notification.setLargeIcon(largeIconBitmap)
+                        .setStyle(new NotificationCompat.BigPictureStyle()
+                                .bigPicture(largeIconBitmap)
+                                .bigLargeIcon(null));
+            }
 
-        statusConfig.addActionsToNotificationBuilder(notification);
+            statusConfig.addActionsToNotificationBuilder(notification);
 
-        Notification builtNotification = notification.build();
+            Notification builtNotification = notification.build();
 
-        showSnackbar(uploadInfo, statusConfig, uploadInfo.getUploadedBytes(), totalBytes);
-
-        if (service.holdForegroundNotification(params.id, builtNotification)) {
-            notificationManager.cancel(notificationId);
+            if (service.holdForegroundNotification(params.id, builtNotification)) {
+                notificationManager.cancel(notificationId);
+            } else {
+                notificationManager.notify(notificationId, builtNotification);
+            }
         } else {
-            notificationManager.notify(notificationId, builtNotification);
+            showSnackbar(uploadInfo, statusConfig, uploadInfo.getUploadedBytes(), totalBytes);
         }
     }
 
@@ -569,7 +573,10 @@ public abstract class UploadTask implements Runnable {
     }
 
     private void updateNotification(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig, boolean isTerminal) {
-        if (params.notificationConfig == null) return;
+        // Guard Clause
+        if (params.notificationConfig == null) {
+            return;
+        }
 
         notificationManager.cancel(notificationId);
 
@@ -578,31 +585,33 @@ public abstract class UploadTask implements Runnable {
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
         String channelId = getChannelId(uploadInfo);
 
-        if (!statusConfig.autoClear) {
-            NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
-                    .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
-                    .setContentText(getNotificationContent(uploadInfo, statusConfig))
-                    .setContentIntent(statusConfig.getClickIntent(service))
-                    .setAutoCancel(statusConfig.clearOnAction)
-                    .setSmallIcon(statusConfig.iconResourceID)
-                    .setColor(statusConfig.iconColorInt)
-                    .setGroup(UploadService.NAMESPACE)
-                    .setProgress(0, 0, false)
-                    .setOngoing(false);
+        if (NotificationManagerCompat.from(service).areNotificationsEnabled()) {
+            if (!statusConfig.autoClear) {
+                NotificationCompat.Builder notification = new NotificationCompat.Builder(service, channelId)
+                        .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
+                        .setContentText(getNotificationContent(uploadInfo, statusConfig))
+                        .setContentIntent(statusConfig.getClickIntent(service))
+                        .setAutoCancel(statusConfig.clearOnAction)
+                        .setSmallIcon(statusConfig.iconResourceID)
+                        .setColor(statusConfig.iconColorInt)
+                        .setGroup(UploadService.NAMESPACE)
+                        .setProgress(0, 0, false)
+                        .setOngoing(false);
 
-            if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
-                notification.setLargeIcon(largeIconBitmap);
+                if (largeIconBitmap != null && !largeIconBitmap.isRecycled()) {
+                    notification.setLargeIcon(largeIconBitmap);
+                }
+
+                statusConfig.addActionsToNotificationBuilder(notification);
+                setRingtone(notification);
+
+                // this is needed because the main notification used to show progress is ongoing
+                // and a new one has to be created to allow the user to dismiss it
+                uploadInfo.setNotificationID(notificationId + 1);
+                notificationManager.notify(notificationId + 1, notification.build());
             }
-
+        } else {
             showSnackbar(uploadInfo, statusConfig, 0, 0);
-            statusConfig.addActionsToNotificationBuilder(notification);
-
-            setRingtone(notification);
-
-            // this is needed because the main notification used to show progress is ongoing
-            // and a new one has to be created to allow the user to dismiss it
-            uploadInfo.setNotificationID(notificationId + 1);
-            notificationManager.notify(notificationId + 1, notification.build());
         }
     }
 
@@ -717,13 +726,14 @@ public abstract class UploadTask implements Runnable {
         String title = getNotificationTitle(uploadInfo, statusConfig);
         String message = getNotificationContent(uploadInfo, statusConfig);
         SnackbarHolder snackbarHolder = service.getSnackbarHolder();
+        NotificationSnackbar.NotificationSnackbarModel model = new NotificationSnackbar.NotificationSnackbarModel(title, message, uploadedBytes, totalBytes, statusConfig.iconResourceID, statusConfig.iconColorInt, largeIconBitmap);
 
         if (snackbarHolder.shouldBeRecreated(activeActivity)) {
             snackbarHolder.setSnackbarActivity(activeActivity);
 
             NotificationSnackbar notificationSnackbar = new NotificationSnackbar(activeActivity);
             snackbarHolder.setNotificationSnackbar(notificationSnackbar);
-            notificationSnackbar.update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
+            notificationSnackbar.update(model);
             notificationSnackbar.show((ViewGroup) activeActivity.getWindow().getDecorView());
             notificationSnackbar.setOnClickListener(v -> {
                 try {
@@ -734,7 +744,7 @@ public abstract class UploadTask implements Runnable {
                 }
             });
         } else if(snackbarHolder.getNotificationSnackbar() != null) {
-            snackbarHolder.getNotificationSnackbar().update(title, message, statusConfig, uploadedBytes, totalBytes, largeIconBitmap);
+            snackbarHolder.getNotificationSnackbar().update(model);
         }
     }
 
