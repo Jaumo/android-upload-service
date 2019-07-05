@@ -24,7 +24,7 @@ class NotificationSnackbarWrapper(private val fragmentActivity: FragmentActivity
         }
     }
     private var notificationSnackbar: NotificationSnackbar? = null
-    private val handler by lazy { Handler(Looper.getMainLooper()) }
+    private val hideHandler by lazy { Handler(Looper.getMainLooper()) }
     private var shouldShowInstantly = false
     //endregion
 
@@ -46,12 +46,15 @@ class NotificationSnackbarWrapper(private val fragmentActivity: FragmentActivity
         NotificationSnackbarRepository.model.removeObserver(notificationSnackbarModelObserver)
         notificationSnackbar?.hide(shouldAnimate = false, shouldClearNotification = false)
         notificationSnackbar = null
-        handler.removeCallbacksAndMessages(null)
+        hideHandler.removeCallbacksAndMessages(null)
     }
     //endregion
 
     //region Helpers
     private fun showNotificationSnackbar(notificationSnackbarModel: NotificationSnackbarModel?) {
+        // Prevent any pending hide actions from executing
+        hideHandler.removeCallbacksAndMessages(null)
+
         if (notificationSnackbar == null) {
             notificationSnackbar = NotificationSnackbar(fragmentActivity).apply {
                 update(notificationSnackbarModel!!)
@@ -60,6 +63,7 @@ class NotificationSnackbarWrapper(private val fragmentActivity: FragmentActivity
                     try {
                         if (notificationSnackbarModel.pendingIntent != null) {
                             notificationSnackbarModel.pendingIntent.send()
+                            NotificationSnackbarRepository.model.postValue(null)
                         }
                     } catch (e: Exception) {
                         Log.e("Pending Intent", "Could not consume click event", e)
@@ -74,7 +78,11 @@ class NotificationSnackbarWrapper(private val fragmentActivity: FragmentActivity
 
     private fun hideNotificationSnackbar() {
         if (fragmentActivity.lifecycle.currentState == Lifecycle.State.RESUMED) {
-            handler.postDelayed({ notificationSnackbar?.hide() }, NotificationSnackbar.HIDE_DURATION_MS.toLong())
+            // Delay hiding briefly to allow user to read notification
+            hideHandler.postDelayed({
+                notificationSnackbar?.hide()
+                notificationSnackbar = null
+            }, NotificationSnackbar.HIDE_DURATION_MS.toLong())
         } else {
             notificationSnackbar?.hide(shouldAnimate = true, shouldClearNotification = false)
             notificationSnackbar = null

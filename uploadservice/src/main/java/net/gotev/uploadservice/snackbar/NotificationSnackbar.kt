@@ -10,8 +10,6 @@ import android.arch.lifecycle.OnLifecycleEvent
 import android.content.Context
 import android.graphics.PorterDuff
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.support.v4.view.ViewCompat
 import android.support.v4.view.WindowInsetsCompat
 import android.util.AttributeSet
@@ -36,7 +34,7 @@ class NotificationSnackbar @JvmOverloads constructor(
     //endregion
 
     //region Variables
-    private val notificationHandler = Handler(Looper.getMainLooper())
+    private var objectAnimator: ObjectAnimator? = null
     private var windowInsetsCompat: WindowInsetsCompat? = null
     //endregion
 
@@ -61,79 +59,73 @@ class NotificationSnackbar @JvmOverloads constructor(
     @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
     fun onDestroy() {
         imageView.setImageDrawable(null)
-        notificationHandler.removeCallbacksAndMessages(null)
-
-        if (parent != null) {
-            (parent as ViewGroup).removeView(this)
-        }
+        objectAnimator?.end()
+        (parent as? ViewGroup)?.removeView(this)
     }
     //endregion
 
     //region Public Methods
     fun update(model: NotificationSnackbarModel) {
-        notificationHandler.post {
-            model.run {
-                titleText.text = title
-                messageText.text = message
-                progressBar.progress = uploadedBytes.toInt()
-                progressBar.max = totalBytes.toInt()
-                progressBar.indeterminateDrawable.setColorFilter(iconColorInt, PorterDuff.Mode.SRC_ATOP)
+        model.run {
+            titleText.text = title
+            messageText.text = message
+            progressBar.progress = uploadedBytes.toInt()
+            progressBar.max = totalBytes.toInt()
+            progressBar.indeterminateDrawable.setColorFilter(iconColorInt, PorterDuff.Mode.SRC_ATOP)
 
-                if (totalBytes > 0) {
-                    messageText.visibility = View.GONE
-                    progressBar.visibility = View.VISIBLE
-                } else {
-                    progressBar.visibility = View.GONE
-                    messageText.visibility = View.VISIBLE
-                }
+            if (totalBytes > 0) {
+                messageText.visibility = View.GONE
+                progressBar.visibility = View.VISIBLE
+            } else {
+                progressBar.visibility = View.GONE
+                messageText.visibility = View.VISIBLE
+            }
 
-                if (iconBitmap != null && !iconBitmap.isRecycled) {
-                    imageView.setImageBitmap(iconBitmap)
-                    imageView.clearColorFilter()
-                } else {
-                    imageView.setImageResource(iconResourceID)
-                    imageView.setColorFilter(iconColorInt)
-                }
+            if (iconBitmap != null && !iconBitmap.isRecycled) {
+                imageView.setImageBitmap(iconBitmap)
+                imageView.clearColorFilter()
+            } else {
+                imageView.setImageResource(iconResourceID)
+                imageView.setColorFilter(iconColorInt)
             }
         }
     }
 
     @JvmOverloads
     fun show(container: ViewGroup, shouldAnimate: Boolean = true) {
-        notificationHandler.post {
-            if (parent == null) {
-                visibility = View.INVISIBLE
-                container.addView(this, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        if (parent == null) {
+            visibility = View.INVISIBLE
+            container.addView(this, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+
+        if (windowInsetsCompat != null) {
+            displaySnackbar(windowInsetsCompat!!, shouldAnimate)
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+                requestApplyInsets()
             }
 
-            if (windowInsetsCompat == null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-                    requestApplyInsets()
-                }
-
-                ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsetsCompat ->
-                    this.windowInsetsCompat = windowInsetsCompat
-                    displaySnackbar(shouldAnimate)
-                    windowInsetsCompat
-                }
-            } else {
-                displaySnackbar(shouldAnimate)
+            ViewCompat.setOnApplyWindowInsetsListener(this) { v, windowInsetsCompat ->
+                this.windowInsetsCompat = windowInsetsCompat
+                ViewCompat.setOnApplyWindowInsetsListener(v, null)
+                displaySnackbar(windowInsetsCompat, shouldAnimate)
+                windowInsetsCompat
             }
         }
     }
 
     @JvmOverloads
     fun hide(shouldAnimate: Boolean = true, shouldClearNotification: Boolean = false) {
-        notificationHandler.post {
-            val layoutParams = layoutParams
-            val marginTop = if (layoutParams is MarginLayoutParams) layoutParams.topMargin else 0
-            val translationEnd = (marginTop + measuredHeight) * -1f
+        val layoutParams = layoutParams
+        val marginTop = if (layoutParams is MarginLayoutParams) layoutParams.topMargin else 0
+        val translationEnd = (marginTop + measuredHeight) * -1f
 
-            if (shouldAnimate) {
-                val objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, translationEnd)
-                objectAnimator.duration = ANIMATION_DURATION
-                objectAnimator.interpolator = AccelerateDecelerateInterpolator()
-                objectAnimator.addListener(object : Animator.AnimatorListener {
+        if (shouldAnimate) {
+            objectAnimator?.end()
+            objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, translationEnd).apply {
+                duration = ANIMATION_DURATION
+                interpolator = AccelerateDecelerateInterpolator()
+                addListener(object : Animator.AnimatorListener {
                     override fun onAnimationEnd(animation: Animator?) {
                         cleanup(shouldClearNotification)
                     }
@@ -150,19 +142,19 @@ class NotificationSnackbar @JvmOverloads constructor(
                         // Ignored
                     }
                 })
-                objectAnimator.start()
-            } else {
-                translationY = translationEnd
-                cleanup(shouldClearNotification)
+                start()
             }
+        } else {
+            translationY = translationEnd
+            cleanup(shouldClearNotification)
         }
     }
     //endregion
 
     //region Helpers
-    private fun displaySnackbar(shouldAnimate: Boolean = true) {
+    private fun displaySnackbar(windowInsetsCompat: WindowInsetsCompat, shouldAnimate: Boolean = true) {
         val margin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8f, context.resources.displayMetrics).toInt()
-        val topInsets = ((windowInsetsCompat?.stableInsetTop ?: 0) + (windowInsetsCompat?.systemWindowInsetTop ?: 0))
+        val topInsets = windowInsetsCompat.stableInsetTop + windowInsetsCompat.systemWindowInsetTop
 
         if (layoutParams is MarginLayoutParams) {
             val marginLayoutParams = layoutParams as MarginLayoutParams
@@ -176,10 +168,12 @@ class NotificationSnackbar @JvmOverloads constructor(
         visibility = View.VISIBLE
 
         if (shouldAnimate) {
-            val objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, 0f)
-            objectAnimator.duration = ANIMATION_DURATION
-            objectAnimator.interpolator = AccelerateDecelerateInterpolator()
-            objectAnimator.start()
+            objectAnimator?.end()
+            objectAnimator = ObjectAnimator.ofFloat(this, "translationY", translationY, 0f).apply {
+                duration = ANIMATION_DURATION
+                interpolator = AccelerateDecelerateInterpolator()
+                start()
+            }
         } else {
             translationY = 0f
         }
