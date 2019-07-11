@@ -35,14 +35,14 @@ class NotificationSnackbarWrapper(private val fragmentActivity: FragmentActivity
     //endregion
 
     //region Lifecycle
-    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-    fun onCreate() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    fun onResume() {
         shouldShowInstantly = NotificationSnackbarRepository.model.value != null
         NotificationSnackbarRepository.model.observe(fragmentActivity, notificationSnackbarModelObserver)
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-    fun onDestroy() {
+    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+    fun onPause() {
         NotificationSnackbarRepository.model.removeObserver(notificationSnackbarModelObserver)
         notificationSnackbar?.hide(shouldAnimate = false, shouldClearNotification = false)
         notificationSnackbar = null
@@ -57,22 +57,22 @@ class NotificationSnackbarWrapper(private val fragmentActivity: FragmentActivity
 
         if (notificationSnackbar == null) {
             notificationSnackbar = NotificationSnackbar(fragmentActivity).apply {
-                update(notificationSnackbarModel!!)
                 show(container = fragmentActivity.window.decorView as ViewGroup, shouldAnimate = !shouldShowInstantly)
-                setOnClickListener {
-                    try {
-                        if (notificationSnackbarModel.pendingIntent != null) {
-                            notificationSnackbarModel.pendingIntent.send()
-                            NotificationSnackbarRepository.model.postValue(null)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("Pending Intent", "Could not consume click event", e)
-                    }
-                }
             }
 
-        } else {
-            notificationSnackbar?.update(notificationSnackbarModel!!)
+        }
+        notificationSnackbar?.apply {
+            update(notificationSnackbarModel!!)
+            setOnClickListener {
+                try {
+                    if (notificationSnackbarModel.pendingIntent != null) {
+                        notificationSnackbarModel.pendingIntent.send()
+                        NotificationSnackbarRepository.model.postValue(null)
+                    }
+                } catch (e: Exception) {
+                    Log.e("Pending Intent", "Could not consume click event", e)
+                }
+            }
         }
     }
 
