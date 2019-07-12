@@ -86,7 +86,7 @@ public final class UploadService extends Service {
     /**
      * Buffer size in bytes used for data transfer by the upload tasks.
      */
-    public static int BUFFER_SIZE = 4096;
+    public static int BUFFER_SIZE = 50000;
 
     /**
      * Sets the time to wait in milliseconds before the next attempt when an upload fails
@@ -119,7 +119,7 @@ public final class UploadService extends Service {
      * If the upload Tasks report more frequently, we will throttle notifications.
      * We aim for 6 updates per second.
      */
-    public static long PROGRESS_REPORT_INTERVAL = 166;
+    public static long PROGRESS_REPORT_INTERVAL = 500;
 
     // constants used in the intent which starts this service
     private static final String ACTION_UPLOAD_SUFFIX = ".uploadservice.action.upload";
@@ -135,6 +135,7 @@ public final class UploadService extends Service {
     private PowerManager.WakeLock wakeLock;
     private int notificationIncrementalId = 0;
     private static final Map<String, UploadTask> uploadTasksMap = new ConcurrentHashMap<>();
+    private static final Map<String, UploadTask> completedTasksMap = new ConcurrentHashMap<>();
     private static final Map<String, WeakReference<UploadStatusDelegate>> uploadDelegates = new ConcurrentHashMap<>();
     private final BlockingQueue<Runnable> uploadTasksQueue = new LinkedBlockingQueue<>();
     private static volatile String foregroundUploadId = null;
@@ -358,6 +359,7 @@ public final class UploadService extends Service {
 
         uploadTasksMap.clear();
         uploadDelegates.clear();
+        completedTasksMap.clear();
 
         Logger.debug(TAG, "UploadService destroyed");
     }
@@ -428,6 +430,10 @@ public final class UploadService extends Service {
         UploadTask task = uploadTasksMap.remove(uploadId);
         uploadDelegates.remove(uploadId);
 
+        if (task != null) {
+            completedTasksMap.put(uploadId, task);
+        }
+
         // un-hold foreground upload ID if it's been hold
         if (isExecuteInForeground() && task != null && task.params.id.equals(foregroundUploadId)) {
             Logger.debug(TAG, uploadId + " now un-holded the foreground notification");
@@ -482,5 +488,23 @@ public final class UploadService extends Service {
         }
 
         return delegate;
+    }
+
+    /**
+     * Returns the index of the current upload task
+     *
+     * @return
+     */
+    public int getIndexOfCurrentUploadTask() {
+        return completedTasksMap.size() + 1;
+    }
+
+    /**
+     * Return the total number of tasks that are active or have been completed
+     *
+     * @return
+     */
+    public int getTotalTasks() {
+        return uploadTasksMap.size() + completedTasksMap.size();
     }
 }
