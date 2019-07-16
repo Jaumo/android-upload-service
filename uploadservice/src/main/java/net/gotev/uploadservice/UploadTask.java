@@ -146,7 +146,7 @@ public abstract class UploadTask implements Runnable {
         this.service = service;
 
         if (params.notificationConfig != null) {
-            createNotificationChannel(params.notificationConfig.getHighImportanceNotificationChannelId(), params.notificationConfig.getHighImportanceNotificationChannelName(), NotificationManagerCompat.IMPORTANCE_HIGH);
+            createNotificationChannel(params.notificationConfig.getMaxImportanceNotificationChannelId(), params.notificationConfig.getMaxImportanceNotificationChannelName(), NotificationManagerCompat.IMPORTANCE_MAX);
             createNotificationChannel(params.notificationConfig.getLowImportanceNotificationChannelId(), params.notificationConfig.getLowImportanceNotificationChannelName(), NotificationManagerCompat.IMPORTANCE_LOW);
         }
     }
@@ -157,13 +157,19 @@ public abstract class UploadTask implements Runnable {
                 notificationChannelId = UploadService.NAMESPACE + channelName;
             }
 
-            if (notificationManager.getNotificationChannel(notificationChannelId) == null) {
-                NotificationChannel channel = new NotificationChannel(notificationChannelId, channelName, importance);
+            NotificationChannel notificationChannel = notificationManager.getNotificationChannel(notificationChannelId);
+
+            if (notificationChannel == null) {
+                notificationChannel = new NotificationChannel(notificationChannelId, channelName, importance);
                 if (!params.notificationConfig.isRingToneEnabled()) {
-                    channel.setSound(null, null);
+                    notificationChannel.setSound(null, null);
                 }
-                notificationManager.createNotificationChannel(channel);
+            } else {
+                notificationChannel.setName(channelName);
+                notificationChannel.setImportance(importance);
             }
+
+            notificationManager.createNotificationChannel(notificationChannel);
         }
     }
 
@@ -474,7 +480,7 @@ public abstract class UploadTask implements Runnable {
         notificationCreationTimeMillis = System.currentTimeMillis();
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getHighImportanceNotificationChannelId())
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getMaxImportanceNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
                 .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
                 .setContentText(getNotificationContent(uploadInfo, statusConfig))
@@ -712,7 +718,7 @@ public abstract class UploadTask implements Runnable {
      */
     private String getChannelId(UploadInfo uploadInfo) {
         if (uploadInfo.getSuccessfullyUploadedFiles().isEmpty() && uploadInfo.getTotalBytes() < 100) {
-            return params.notificationConfig.getHighImportanceNotificationChannelId();
+            return params.notificationConfig.getMaxImportanceNotificationChannelId();
         } else {
             return params.notificationConfig.getLowImportanceNotificationChannelId();
         }

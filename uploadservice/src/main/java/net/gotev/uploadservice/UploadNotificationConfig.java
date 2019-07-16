@@ -218,11 +218,11 @@ public final class UploadNotificationConfig implements Parcelable {
         return cancelled;
     }
 
-    public String getHighImportanceNotificationChannelId() {
+    public String getMaxImportanceNotificationChannelId() {
         return highImportanceNotificationChannel.first;
     }
 
-    public String getHighImportanceNotificationChannelName() {
+    public String getMaxImportanceNotificationChannelName() {
         return highImportanceNotificationChannel.second;
     }
 
