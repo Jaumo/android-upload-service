@@ -709,7 +709,7 @@ public abstract class UploadTask implements Runnable {
     }
 
     /**
-     * We want to show the high importance channel at the start of an upload so the user is presented
+     * We want to show the max importance channel at the start of an upload so the user is presented
      * with a peek notification. After the upload has started, we want to minimize the notification,
      * so we toggle it over to the low importance notification.
      *
