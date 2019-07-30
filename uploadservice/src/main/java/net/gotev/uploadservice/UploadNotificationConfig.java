@@ -3,8 +3,8 @@ package net.gotev.uploadservice;
 import android.app.PendingIntent;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.v4.util.Pair;
+import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
 
 /**
  * Contains the configuration of the upload notification.
