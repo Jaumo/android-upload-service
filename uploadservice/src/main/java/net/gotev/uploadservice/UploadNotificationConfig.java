@@ -3,8 +3,8 @@ package net.gotev.uploadservice;
 import android.app.PendingIntent;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.v4.util.Pair;
+import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
 
 /**
  * Contains the configuration of the upload notification.
@@ -14,7 +14,7 @@ import android.support.v4.util.Pair;
 public final class UploadNotificationConfig implements Parcelable {
 
     private boolean ringToneEnabled;
-    private Pair<String, String> highImportanceNotificationChannel;
+    private Pair<String, String> maxImportanceNotificationChannel;
     private Pair<String, String> lowImportanceNotificationChannel;
 
     private UploadNotificationStatusConfig progress;
@@ -175,14 +175,14 @@ public final class UploadNotificationConfig implements Parcelable {
     }
 
     /**
-     * Sets high importance notification channel, assuming (id, name) pair.
+     * Sets max importance notification channel, assuming (id, name) pair.
      *
      * @param id notification channel ID
      * @param name notification channel name
      * @return {@link UploadNotificationConfig}
      */
-    public final UploadNotificationConfig setHighImportanceNotificationChannel(@NonNull String id, @NonNull String name) {
-        this.highImportanceNotificationChannel = new Pair<>(id, name);
+    public final UploadNotificationConfig setMaxImportanceNotificationChannel(@NonNull String id, @NonNull String name) {
+        this.maxImportanceNotificationChannel = new Pair<>(id, name);
         return this;
     }
 
@@ -218,12 +218,12 @@ public final class UploadNotificationConfig implements Parcelable {
         return cancelled;
     }
 
-    public String getHighImportanceNotificationChannelId() {
-        return highImportanceNotificationChannel.first;
+    public String getMaxImportanceNotificationChannelId() {
+        return maxImportanceNotificationChannel.first;
     }
 
-    public String getHighImportanceNotificationChannelName() {
-        return highImportanceNotificationChannel.second;
+    public String getMaxImportanceNotificationChannelName() {
+        return maxImportanceNotificationChannel.second;
     }
 
     public String getLowImportanceNotificationChannelId() {
@@ -241,8 +241,8 @@ public final class UploadNotificationConfig implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(this.highImportanceNotificationChannel.first);
-        dest.writeString(this.highImportanceNotificationChannel.second);
+        dest.writeString(this.maxImportanceNotificationChannel.first);
+        dest.writeString(this.maxImportanceNotificationChannel.second);
         dest.writeString(this.lowImportanceNotificationChannel.first);
         dest.writeString(this.lowImportanceNotificationChannel.second);
         dest.writeByte(this.ringToneEnabled ? (byte) 1 : (byte) 0);
@@ -253,7 +253,7 @@ public final class UploadNotificationConfig implements Parcelable {
     }
 
     protected UploadNotificationConfig(Parcel in) {
-        this.highImportanceNotificationChannel = new Pair<>(in.readString(), in.readString());
+        this.maxImportanceNotificationChannel = new Pair<>(in.readString(), in.readString());
         this.lowImportanceNotificationChannel = new Pair<>(in.readString(), in.readString());
         this.ringToneEnabled = in.readByte() != 0;
         this.progress = in.readParcelable(UploadNotificationStatusConfig.class.getClassLoader());
