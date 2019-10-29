@@ -729,27 +729,17 @@ public abstract class UploadTask implements Runnable {
         String title = getNotificationTitle(uploadInfo, statusConfig);
         String message = getNotificationContent(uploadInfo, statusConfig);
         InAppNotificationModel model = new InAppNotificationModel(title, message, uploadedBytes, totalBytes, statusConfig.iconResourceID, statusConfig.iconColorInt, largeIconBitmap, statusConfig.clickIntent);
-        InAppNotificationRepository.INSTANCE.getModel().postValue(model);
+        InAppNotificationRepository.INSTANCE.getModel().onNext(model);
     }
 
     private void cleanupResources() {
-        boolean hadSnackbar = InAppNotificationRepository.INSTANCE.getModel().getValue() != null;
-        InAppNotificationRepository.INSTANCE.getModel().postValue(null);
-
-        if (hadSnackbar) {
-            Handler handler = new Handler(Looper.getMainLooper());
+        Handler handler = new Handler(Looper.getMainLooper());
             handler.postDelayed(() -> {
                 if (largeIconBitmap != null) {
                     largeIconBitmap.recycle();
                     largeIconBitmap = null;
                 }
             }, HIDE_DURATION_MS);
-        } else {
-            if (largeIconBitmap != null) {
-                largeIconBitmap.recycle();
-                largeIconBitmap = null;
-            }
-        }
     }
 
     private String getNotificationTitle(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig) {
