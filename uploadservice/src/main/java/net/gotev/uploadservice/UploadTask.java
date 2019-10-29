@@ -12,13 +12,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import androidx.annotation.CallSuper;
-import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
-import net.gotev.uploadservice.snackbar.NotificationSnackbarModel;
-import net.gotev.uploadservice.snackbar.NotificationSnackbarRepository;
+import net.gotev.uploadservice.inapp.InAppNotificationModel;
+import net.gotev.uploadservice.inapp.InAppNotificationRepository;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +24,12 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import static net.gotev.uploadservice.snackbar.NotificationSnackbar.HIDE_DURATION_MS;
+import androidx.annotation.CallSuper;
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+
+import static net.gotev.uploadservice.inapp.InAppNotificationRepository.HIDE_DURATION_MS;
 
 /**
  * Base class to subclass when creating upload tasks. It contains the logic common to all the tasks,
@@ -727,13 +728,13 @@ public abstract class UploadTask implements Runnable {
     private void showSnackbar(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig, long uploadedBytes, long totalBytes) {
         String title = getNotificationTitle(uploadInfo, statusConfig);
         String message = getNotificationContent(uploadInfo, statusConfig);
-        NotificationSnackbarModel model = new NotificationSnackbarModel(title, message, uploadedBytes, totalBytes, statusConfig.iconResourceID, statusConfig.iconColorInt, largeIconBitmap, statusConfig.clickIntent);
-        NotificationSnackbarRepository.INSTANCE.getModel().postValue(model);
+        InAppNotificationModel model = new InAppNotificationModel(title, message, uploadedBytes, totalBytes, statusConfig.iconResourceID, statusConfig.iconColorInt, largeIconBitmap, statusConfig.clickIntent);
+        InAppNotificationRepository.INSTANCE.getModel().postValue(model);
     }
 
     private void cleanupResources() {
-        boolean hadSnackbar = NotificationSnackbarRepository.INSTANCE.getModel().getValue() != null;
-        NotificationSnackbarRepository.INSTANCE.getModel().postValue(null);
+        boolean hadSnackbar = InAppNotificationRepository.INSTANCE.getModel().getValue() != null;
+        InAppNotificationRepository.INSTANCE.getModel().postValue(null);
 
         if (hadSnackbar) {
             Handler handler = new Handler(Looper.getMainLooper());
