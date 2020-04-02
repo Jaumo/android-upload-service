@@ -66,6 +66,10 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.0'
     implementation 'com.google.android.material:material:1.0.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    // Rx
+    implementation "io.reactivex.rxjava2:rxjava:${RXJAVA_VERSION}"
+    implementation "io.reactivex.rxjava2:rxkotlin:${RXKOTLIN_VERSION}"
 }
 
 // add the following information to the file: local.properties situated in the parent directory of
