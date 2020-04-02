@@ -480,7 +480,7 @@ public abstract class UploadTask implements Runnable {
         notificationCreationTimeMillis = System.currentTimeMillis();
         populateLargeIconBitmap(statusConfig.largeNotificationDimensions, uploadInfo.getCurrentFilePath());
 
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getMaxImportanceNotificationChannelId())
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(service, params.notificationConfig.getLowImportanceNotificationChannelId())
                 .setWhen(notificationCreationTimeMillis)
                 .setContentTitle(getNotificationTitle(uploadInfo, statusConfig))
                 .setContentText(getNotificationContent(uploadInfo, statusConfig))
@@ -717,11 +717,7 @@ public abstract class UploadTask implements Runnable {
      * @return
      */
     private String getChannelId(UploadInfo uploadInfo) {
-        if (uploadInfo.getSuccessfullyUploadedFiles().isEmpty() && uploadInfo.getTotalBytes() < 100) {
-            return params.notificationConfig.getMaxImportanceNotificationChannelId();
-        } else {
-            return params.notificationConfig.getLowImportanceNotificationChannelId();
-        }
+        return params.notificationConfig.getLowImportanceNotificationChannelId();
     }
 
     private void showSnackbar(UploadInfo uploadInfo, UploadNotificationStatusConfig statusConfig, long uploadedBytes, long totalBytes) {
